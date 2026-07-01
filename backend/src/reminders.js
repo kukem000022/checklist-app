@@ -1,0 +1,330 @@
+import { admin } from "./supabase.js";
+import { sendTelegramMessage } from "./telegram.js";
+import { config } from "./config.js";
+
+const reminderWindows = [
+  { type: "due_soon_24h", fromMinutes: 23 * 60, toMinutes: 24 * 60 },
+  { type: "due_soon_2h", fromMinutes: 90, toMinutes: 120 },
+];
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Asia/Ho_Chi_Minh",
+  }).format(new Date(value));
+}
+
+function personLabel(profile) {
+  return profile?.full_name || profile?.email || "Nhan su";
+}
+
+function taskRecipients(task) {
+  const recipients = new Map();
+  if (task.assignee?.id) {
+    recipients.set(task.assignee.id, task.assignee);
+  }
+  for (const member of task.task_members || []) {
+    const profile = member.profiles;
+    if (profile?.id) {
+      recipients.set(profile.id, profile);
+    }
+  }
+  return [...recipients.values()];
+}
+
+function buildMessage(type, task, recipients = []) {
+  const projectName = task.projects?.name || "Ca nhan";
+  const assignee = recipients.length ? recipients.map(personLabel).join(", ") : personLabel(task.assignee);
+  const title = type === "overdue" ? "TASK QUA HAN" : "TASK SAP TOI HAN";
+
+  return [
+    title,
+    `Du an: ${projectName}`,
+    `Nhan su: ${assignee}`,
+    `Task: ${task.title}`,
+    `Deadline: ${formatDate(task.due_time)}`,
+    `Trang thai: ${task.status}`,
+    type === "overdue"
+      ? "Can cap nhat tien do trong he thong."
+      : "Vui long kiem tra va hoan thanh dung han.",
+  ].join("\n");
+}
+
+async function notificationExists(taskId, userId, type) {
+  const { data, error } = await admin
+    .from("task_notifications")
+    .select("id")
+    .eq("task_id", taskId)
+    .eq("user_id", userId)
+    .eq("type", type)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return Boolean(data);
+}
+
+async function logNotification(taskId, userId, type, status) {
+  const { error } = await admin.from("task_notifications").insert({
+    task_id: taskId,
+    user_id: userId,
+    type,
+    status,
+  });
+
+  if (error && error.code !== "23505") {
+    throw error;
+  }
+}
+
+function projectGroupChatId(task) {
+  return task.projects?.telegram_group_chat_id || null;
+}
+
+async function getDefaultTelegramGroupChatId() {
+  const { data, error } = await admin
+    .from("app_settings")
+    .select("value")
+    .eq("key", "default_telegram_group_chat_id")
+    .maybeSingle();
+
+  if (error) {
+    if (["42P01", "PGRST205"].includes(error.code)) return null;
+    throw error;
+  }
+
+  return data?.value || null;
+}
+
+async function sendForTask(type, task, recipient, chatId) {
+  if (await notificationExists(task.id, recipient.id, type)) {
+    return;
+  }
+
+  const result = await sendTelegramMessage(chatId || recipient.telegram_chat_id, buildMessage(type, task, [recipient]));
+  await logNotification(task.id, recipient.id, type, result.ok ? "sent" : result.skipped ? "skipped" : "failed");
+}
+
+async function sendReminder(type, task, recipients, groupChatId) {
+  const pendingRecipients = [];
+  for (const recipient of recipients) {
+    if (!(await notificationExists(task.id, recipient.id, type))) {
+      pendingRecipients.push(recipient);
+    }
+  }
+
+  if (!pendingRecipients.length) {
+    return;
+  }
+
+  if (groupChatId) {
+    const result = await sendTelegramMessage(groupChatId, buildMessage(type, task, pendingRecipients));
+    for (const recipient of pendingRecipients) {
+      await logNotification(task.id, recipient.id, type, result.ok ? "sent" : result.skipped ? "skipped" : "failed");
+    }
+    return;
+  }
+
+  for (const recipient of pendingRecipients) {
+    await sendForTask(type, task, recipient);
+  }
+}
+
+function todayInVietnam() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+async function ensureDailyTasks() {
+  const runDate = todayInVietnam();
+  const { data: templates, error } = await admin
+    .from("daily_task_templates")
+    .select("*")
+    .eq("active", true);
+
+  if (error) throw error;
+
+  const result = {
+    runDate,
+    totalTemplates: templates?.length || 0,
+    created: 0,
+    existing: 0,
+    repaired: 0,
+    details: [],
+  };
+
+  async function createTaskFromTemplate(template, mode) {
+    const dueTime = String(template.due_time || "17:00:00").slice(0, 8);
+    const { data: task, error: taskError } = await admin
+      .from("tasks")
+      .insert({
+        project_id: template.project_id || null,
+        title: template.title,
+        description: template.description || "Task dinh ky hang ngay.",
+        creator_id: template.assignee_id,
+        assignee_id: template.assignee_id,
+        due_time: `${runDate}T${dueTime}+07:00`,
+        priority: "medium",
+        status: "todo",
+      })
+      .select("id, title, due_time, status")
+      .single();
+
+    if (taskError) throw taskError;
+
+    if (template.checklist_items?.length) {
+      const { error: checklistError } = await admin.from("task_checklists").insert(
+        template.checklist_items.map((title, index) => ({
+          task_id: task.id,
+          title,
+          assignee_id: template.assignee_id,
+          due_time: `${runDate}T${dueTime}+07:00`,
+          sort_order: index,
+        })),
+      );
+
+      if (checklistError) throw checklistError;
+    }
+
+    const { error: instanceError } = await admin.from("daily_task_instances").insert({
+      template_id: template.id,
+      run_date: runDate,
+      task_id: task.id,
+    });
+
+    if (instanceError && instanceError.code !== "23505") throw instanceError;
+
+    result[mode] += 1;
+    result.details.push({
+      template_id: template.id,
+      template_title: template.title,
+      task_id: task.id,
+      task_title: task.title,
+      due_time: task.due_time,
+      status: mode === "repaired" ? "repaired" : "created",
+    });
+  }
+
+  for (const template of templates || []) {
+    const { data: existing, error: existingError } = await admin
+      .from("daily_task_instances")
+      .select("task_id")
+      .eq("template_id", template.id)
+      .eq("run_date", runDate)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+    if (existing) {
+      const { data: task, error: taskLookupError } = await admin
+        .from("tasks")
+        .select("id, title, due_time, status")
+        .eq("id", existing.task_id)
+        .maybeSingle();
+
+      if (taskLookupError) throw taskLookupError;
+
+      if (task) {
+        result.existing += 1;
+        result.details.push({
+          template_id: template.id,
+          template_title: template.title,
+          task_id: task.id,
+          task_title: task.title,
+          due_time: task.due_time,
+          task_status: task.status,
+          status: "existing",
+        });
+        continue;
+      }
+
+      await admin
+        .from("daily_task_instances")
+        .delete()
+        .eq("template_id", template.id)
+        .eq("run_date", runDate);
+      await createTaskFromTemplate(template, "repaired");
+      continue;
+    }
+
+    await createTaskFromTemplate(template, "created");
+  }
+
+  return result;
+}
+
+export async function runReminderSweep() {
+  const now = new Date();
+  const maxDue = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const dailyTasks = await ensureDailyTasks();
+
+  const { data: tasks, error } = await admin
+    .from("tasks")
+    .select(`
+      *,
+      projects(name, manager_id, telegram_group_chat_id),
+      assignee:profiles!tasks_assignee_id_fkey(id, full_name, email, telegram_chat_id),
+      task_members(user_id, profiles(id, full_name, email, telegram_chat_id))
+    `)
+    .not("due_time", "is", null)
+    .not("status", "in", '("done","cancelled")')
+    .lte("due_time", maxDue.toISOString());
+
+  if (error) {
+    throw error;
+  }
+
+  const defaultGroupChatId = await getDefaultTelegramGroupChatId();
+
+  for (const task of tasks || []) {
+    const due = new Date(task.due_time);
+    const minutesUntilDue = (due.getTime() - now.getTime()) / 60000;
+    const groupChatId = projectGroupChatId(task) || defaultGroupChatId;
+    const recipients = taskRecipients(task);
+
+    for (const window of reminderWindows) {
+      if (minutesUntilDue >= window.fromMinutes && minutesUntilDue <= window.toMinutes) {
+        await sendReminder(window.type, task, recipients, groupChatId);
+      }
+    }
+
+    if (minutesUntilDue < -config.overdueGraceMinutes) {
+      await sendReminder("overdue", task, recipients, groupChatId);
+
+      if (
+        !groupChatId &&
+        task.projects?.manager_id &&
+        !recipients.some((recipient) => recipient.id === task.projects.manager_id)
+      ) {
+        const { data: manager } = await admin
+          .from("profiles")
+          .select("id, full_name, email, telegram_chat_id")
+          .eq("id", task.projects.manager_id)
+          .maybeSingle();
+
+        if (manager) {
+          await sendForTask("overdue", task, manager);
+        }
+      }
+    }
+  }
+
+  return { checked: tasks?.length || 0, createdDailyTasks: dailyTasks.created + dailyTasks.repaired, dailyTasks };
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runReminderSweep()
+    .then((result) => {
+      console.log(`Reminder sweep complete: ${result.checked} task(s) checked`);
+    })
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+}

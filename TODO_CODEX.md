@@ -1,0 +1,137 @@
+# TODO CODEX
+
+## Rule lam viec
+
+- Khong dung chi vi `npm.cmd run build` pass.
+- Chi dung khi QA/QC cac luong chinh pass hoac co blocker ro rang can user/cau hinh ngoai.
+- Sau moi buoc quan trong, cap nhat file nay voi: da lam gi, file da sua, loi con lai, lenh can chay tiep.
+
+## Da lam trong checkpoint nay
+
+- Xac nhan backend local `http://localhost:3978/health` dang OK.
+- Xac nhan frontend local `http://localhost:5173` dang tra 200.
+- Tao `work/qa-smoke.mjs` de login admin va goi cac endpoint chinh.
+- Chay `node work\qa-smoke.mjs` nhung sandbox chan ket noi ra Supabase (`EACCES`), nen chua the QA API authenticated tu moi truong nay.
+- Sua `frontend/src/api.js`: thong bao loi mac dinh khong con bi loi font tieng Viet.
+- Don `frontend/src/main.jsx`: bo state/request/props tasklist cu khong con dung o UI Du an.
+- Sua luong tao task:
+  - Popup tao task co UI chon thanh vien xu ly khi task gan voi du an.
+  - Popup tao task chi hien nguoi phu trach/thanh vien xu ly trong danh sach thanh vien du an.
+  - Popup tao task bat buoc chon nguoi phu trach neu task thuoc du an.
+  - Backend validate assignee va task member cua task du an phai la thanh vien cua du an.
+- Sua luong drawer chi tiet task:
+  - Checklist item cua task thuoc du an chi cho chi dinh thanh vien cua du an.
+  - Backend validate assignee cua checklist item trong task du an phai la thanh vien du an.
+- Sua luong task dinh ky:
+  - Neu chon du an thi nguoi phu trach chi lay tu thanh vien du an.
+  - Backend validate daily task template: assignee phai la thanh vien du an khi template gan voi du an.
+- Sua workload/bao cao nhan su:
+  - Backend `/api/profiles/summary` tinh ca `assignee_id` va `task_members`.
+  - Frontend ReportsPage tinh workload theo nguoi phu trach va thanh vien xu ly task.
+- Sua Telegram/log khi tao task:
+  - Log `new_task` ap dung cho nguoi phu trach va cac thanh vien xu ly.
+  - Uu tien group du an, sau do group chung, roi fallback chat ca nhan.
+- Sua reminder Telegram:
+  - Reminder deadline/qua han doc ca `task_members`.
+  - Neu co group du an/group chung thi gui 1 tin vao group va log cho tung nhan su lien quan.
+  - Neu khong co group thi fallback gui rieng cho tung nguoi lien quan.
+- Sua API luu chi tiet task tra `checklist_count` theo so thuc te trong database.
+- Sua SQL tasklist encoding:
+  - `supabase/schema.sql` khong seed tasklist bang chuoi loi font nua.
+  - `supabase/run_this_fix_tasklist_encoding.sql` co map sua ca 2 dang chuoi loi font cu ve tieng Viet dung.
+  - Da verify bang Unicode codepoint cho 4 title: Viec can lam, Dang xu ly, Cho phan hoi, Hoan thanh.
+  - Da verify them `supabase/run_this_update_2026_06_25.sql` co 4 title Unicode dung.
+- Sua UI dark/light:
+  - Sidebar desktop bam co dinh full viewport de khong lo nen trang khi noi dung dai.
+  - Bo sung dark-mode coverage cho bang/danh sach/form con o Dashboard, Bao cao, Du an, Nhan su, Vai tro, Task dinh ky.
+- Sua schema setup avatar:
+  - `supabase/schema.sql` da tao bucket `avatars`, gioi han 500KB, chi cho JPG/PNG/WebP.
+  - Them storage policies doc public va user chi upload/sua/xoa trong folder cua chinh minh.
+- QA static/code review da xong:
+  - Tao task co loading/disabled, chan double-click tao trung o UI.
+  - Nhan su/Vai tro/Task detail chi ghi database khi bam nut Luu/Tao/Gui ro rang; cac checkbox/select trong drawer/role/people chi sua draft.
+  - Task member chi cho task thuoc du an; backend chan task ca nhan co member phu.
+  - Assignee/member/checklist assignee cua task du an deu bi validate phai thuoc thanh vien du an.
+  - Checklist con bi chan deadline vuot qua deadline task cha o UI va backend.
+  - Daily rerun co nut `Chay lai hom nay`, backend tao bu hoac bao da co instance trong ngay.
+  - Telegram fallback theo thu tu group du an -> group chung -> chat ca nhan, reminder da tinh ca task members.
+
+## File da sua
+
+- `TODO_CODEX.md`
+- `work/qa-smoke.mjs`
+- `frontend/src/api.js`
+- `frontend/src/main.jsx`
+- `frontend/src/styles.css`
+- `backend/src/server.js`
+- `backend/src/reminders.js`
+- `supabase/schema.sql`
+- `supabase/run_this_fix_tasklist_encoding.sql`
+- `scripts/sync-to-main.ps1`
+
+## Kiem tra da chay
+
+- `npm.cmd run lint` pass.
+- `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+- `npm.cmd run build` pass.
+- Sau fix CSS/SQL moi nhat:
+  - Frontend local `http://localhost:5173` tra 200.
+  - Backend local `http://localhost:3978/health` tra OK.
+  - `npm.cmd run lint` pass.
+  - `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - `npm.cmd run build` pass.
+  - Sau fix reminder Telegram moi nhat: lint pass, backend node --check pass, build pass.
+- Sau fix schema avatar:
+  - `npm.cmd run lint` pass.
+  - `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - `npm.cmd run build` pass.
+  - Frontend local `http://localhost:5173` tra 200.
+  - Backend local `http://localhost:3978/health` tra OK.
+- Sau doc lai TODO va tiep tuc checkpoint:
+  - `npm.cmd run lint` pass.
+  - `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - `npm.cmd run build` pass.
+  - Frontend local `http://localhost:5173` tra 200.
+  - Backend local `http://localhost:3978/health` tra OK.
+- `node work\qa-smoke.mjs` chua pass vi sandbox chan network Supabase (`EACCES`), khong phai loi app da xac minh duoc.
+- User yeu cau test Supabase lai:
+  - Da chay `node work\qa-smoke.mjs`.
+  - Van fail ngay buoc Supabase Auth `signInWithPassword` do sandbox chan network (`EACCES`, `AuthRetryableFetchError: fetch failed`).
+  - Chua co du lieu nao duoc tao/sua/xoa tren Supabase trong lan test nay.
+- User yeu cau cap nhat ra moi truong chinh:
+  - Da kiem tra `D:\Codex_Project` ton tai va co cau truc project.
+  - Da thu copy truc tiep cac file da sua sang `D:\Codex_Project` nhung bi sandbox chan quyen ghi (`Access to the path ... is denied`).
+  - Da verify hash: `frontend\src\api.js` da match, cac file con lai van DIFF/MISSING tren `D:\Codex_Project`.
+  - Da tao `scripts\sync-to-main.ps1` de dong bo dung cac file can cap nhat sang `D:\Codex_Project` khi chay ngoai sandbox.
+  - Da kiem tra cu phap script sync OK.
+  - Da chay lai `npm.cmd run lint` va pass sau khi them script.
+- User doi y: chay luon tren o C/current workspace, khong copy qua o D nua:
+  - Workspace dang dung: `C:\Users\longhuynh\Documents\Codex\2026-06-24\m-nh`.
+  - Port `3978/5173` da co backend/frontend dang chay va health OK.
+  - Port `3980/5174` cung da co backend/frontend dang chay va health OK.
+  - Da thu bat backend moi tren `3980` nhung port da bi dung, da dung watcher loi de khong treo tien trinh thua.
+  - URL co the mo de test ban current workspace: `http://localhost:5174` hoac `http://localhost:5173`.
+- Fix dark mode drawer task:
+  - Bo sung dark style cho `.checklist-item-editor` de khong con nen trang trong checklist editor.
+  - Bo sung dark style cho `.drawer-savebar` de thanh `Luu thay doi` khong con nen trang.
+  - Bo sung mau dark cho input title checklist va nut xoa checklist.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build` pass.
+
+## Loi con lai / viec chua xong
+
+- Chua QA API authenticated/runtime bang tai khoan admin vi sandbox chan ket noi Supabase.
+- Chua QA UI bang trinh duyet that trong moi truong nay vi khong co browser-control tool kha dung trong turn nay.
+- Cac luong da QA tinh/code review:
+  - Dashboard / Reports voi task members.
+  - Nhan su / role / project members.
+  - Settings avatar, Telegram chung, dark/light mode.
+  - SQL schema/update scripts.
+
+## Lenh can chay tiep
+
+- Neu moi truong cho phep network Supabase: `node work\qa-smoke.mjs`.
+- Tiep tuc QA tinh/code review cac luong con lai.
+- Sau moi fix: `npm.cmd run lint`, `node --check backend\src\server.js; node --check backend\src\reminders.js`, `npm.cmd run build`.
+- De cap nhat moi truong chinh ngoai sandbox: `powershell -ExecutionPolicy Bypass -File C:\Users\longhuynh\Documents\Codex\2026-06-24\m-nh\scripts\sync-to-main.ps1`.
+- Sau do vao `D:\Codex_Project` va chay lint/check/build.
