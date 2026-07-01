@@ -136,6 +136,11 @@
   - Da chay `npm.cmd run lint` pass.
   - Da chay `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
   - Da verify `frontend/dist/index.html` co asset `/checklist-app/assets/...`.
+- Them guard cho GitHub Actions trang trang:
+  - Them step `Validate frontend environment` vao `.github/workflows/deploy-frontend.yml`.
+  - Neu thieu `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, hoac `VITE_API_URL` thi workflow fail ro rang thay vi deploy trang trang.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
 - Chuan bi deploy cho repo GitHub chinh:
   - Kiem tra `D:\Codex_Project` la git repo, branch `main`.
   - Remote hien tai: `https://github.com/kukem000022/checklist-app.git`.
