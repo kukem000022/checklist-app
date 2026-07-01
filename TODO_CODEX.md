@@ -68,6 +68,10 @@
 - `supabase/schema.sql`
 - `supabase/run_this_fix_tasklist_encoding.sql`
 - `scripts/sync-to-main.ps1`
+- `render.yaml`
+- `.github/workflows/deploy-frontend.yml`
+- `frontend/vite.config.js`
+- `docs/render-github-pages-deploy.md`
 
 ## Kiem tra da chay
 
@@ -117,6 +121,22 @@
   - Bo sung mau dark cho input title checklist va nut xoa checklist.
   - Da chay `npm.cmd run lint` pass.
   - Da chay `npm.cmd run build` pass.
+- Them cau hinh deploy Render + GitHub Pages:
+  - Them `render.yaml` cho backend Render Web Service.
+  - Them `.github/workflows/deploy-frontend.yml` de deploy frontend len GitHub Pages bang GitHub Actions.
+  - Them `frontend/vite.config.js` de `VITE_BASE_PATH` co hieu luc khi deploy GitHub Pages subpath.
+  - Them `docs/render-github-pages-deploy.md` huong dan dien Render env va GitHub secrets.
+  - Cap nhat `scripts/sync-to-main.ps1` de sync them cac file deploy moi sang `D:\Codex_Project`.
+  - Da chay `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build` pass.
+- Chuan bi deploy cho repo GitHub chinh:
+  - Kiem tra `D:\Codex_Project` la git repo, branch `main`.
+  - Remote hien tai: `https://github.com/kukem000022/checklist-app.git`.
+  - GitHub Pages URL du kien: `https://kukem000022.github.io/checklist-app/`.
+  - Cap nhat docs deploy voi `APP_ORIGIN=https://kukem000022.github.io` va `VITE_BASE_PATH=/checklist-app/`.
+  - Workspace o C co `.git` rong nen khong commit/push truc tiep tu folder C duoc.
+  - Can commit/push tu `D:\Codex_Project` sau khi sync file moi nhat.
 
 ## Loi con lai / viec chua xong
 
