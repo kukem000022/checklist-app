@@ -70,7 +70,6 @@
 - `scripts/sync-to-main.ps1`
 - `render.yaml`
 - `.github/workflows/deploy-frontend.yml`
-- `frontend/vite.config.js`
 - `docs/render-github-pages-deploy.md`
 
 ## Kiem tra da chay
@@ -124,12 +123,19 @@
 - Them cau hinh deploy Render + GitHub Pages:
   - Them `render.yaml` cho backend Render Web Service.
   - Them `.github/workflows/deploy-frontend.yml` de deploy frontend len GitHub Pages bang GitHub Actions.
-  - Them `frontend/vite.config.js` de `VITE_BASE_PATH` co hieu luc khi deploy GitHub Pages subpath.
   - Them `docs/render-github-pages-deploy.md` huong dan dien Render env va GitHub secrets.
   - Cap nhat `scripts/sync-to-main.ps1` de sync them cac file deploy moi sang `D:\Codex_Project`.
   - Da chay `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
   - Da chay `npm.cmd run lint` pass.
   - Da chay `npm.cmd run build` pass.
+- Fix trang trang GitHub Pages:
+  - Nguyen nhan kha nang cao: asset build ra `/assets/...` thay vi `/checklist-app/assets/...`.
+  - Doi workflow sang `npm run build --workspace frontend -- --base=/checklist-app/`.
+  - Xoa `frontend/vite.config.js` de tranh loi sandbox/esbuild khi doc env base path.
+  - Cap nhat `scripts/sync-to-main.ps1` khong sync `frontend/vite.config.js` nua.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
+  - Da verify `frontend/dist/index.html` co asset `/checklist-app/assets/...`.
 - Chuan bi deploy cho repo GitHub chinh:
   - Kiem tra `D:\Codex_Project` la git repo, branch `main`.
   - Remote hien tai: `https://github.com/kukem000022/checklist-app.git`.
