@@ -142,6 +142,43 @@ function todayInVietnam() {
   }).format(new Date());
 }
 
+function parseDateParts(value) {
+  const [year, month, day] = String(value).split("-").map(Number);
+  return { year, month, day };
+}
+
+function toDateString(year, month, day) {
+  return [
+    String(year).padStart(4, "0"),
+    String(month).padStart(2, "0"),
+    String(day).padStart(2, "0"),
+  ].join("-");
+}
+
+function daysInMonth(year, month) {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function shiftWeekendToNextWorkday(value) {
+  const { year, month, day } = parseDateParts(value);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const weekday = date.getUTCDay();
+  if (weekday === 6) date.setUTCDate(date.getUTCDate() + 2);
+  if (weekday === 0) date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function scheduledRunDateForTemplate(template, currentDate) {
+  if ((template.recurrence_type || "daily") === "daily") {
+    return currentDate;
+  }
+
+  const { year, month } = parseDateParts(currentDate);
+  const requestedDay = Math.min(Number(template.monthly_day || 1), daysInMonth(year, month));
+  const scheduledDate = shiftWeekendToNextWorkday(toDateString(year, month, requestedDay));
+  return scheduledDate === currentDate ? scheduledDate : null;
+}
+
 async function ensureDailyTasks() {
   const runDate = todayInVietnam();
   const { data: templates, error } = await admin
@@ -160,17 +197,18 @@ async function ensureDailyTasks() {
     details: [],
   };
 
-  async function createTaskFromTemplate(template, mode) {
+  async function createTaskFromTemplate(template, mode, targetDate) {
     const dueTime = String(template.due_time || "17:00:00").slice(0, 8);
+    const recurrenceLabel = (template.recurrence_type || "daily") === "monthly" ? "hang thang" : "hang ngay";
     const { data: task, error: taskError } = await admin
       .from("tasks")
       .insert({
         project_id: template.project_id || null,
         title: template.title,
-        description: template.description || "Task dinh ky hang ngay.",
+        description: template.description || `Task dinh ky ${recurrenceLabel}.`,
         creator_id: template.assignee_id,
         assignee_id: template.assignee_id,
-        due_time: `${runDate}T${dueTime}+07:00`,
+        due_time: `${targetDate}T${dueTime}+07:00`,
         priority: "medium",
         status: "todo",
       })
@@ -185,7 +223,7 @@ async function ensureDailyTasks() {
           task_id: task.id,
           title,
           assignee_id: template.assignee_id,
-          due_time: `${runDate}T${dueTime}+07:00`,
+          due_time: `${targetDate}T${dueTime}+07:00`,
           sort_order: index,
         })),
       );
@@ -195,7 +233,7 @@ async function ensureDailyTasks() {
 
     const { error: instanceError } = await admin.from("daily_task_instances").insert({
       template_id: template.id,
-      run_date: runDate,
+      run_date: targetDate,
       task_id: task.id,
     });
 
@@ -213,11 +251,16 @@ async function ensureDailyTasks() {
   }
 
   for (const template of templates || []) {
+    const targetDate = scheduledRunDateForTemplate(template, runDate);
+    if (!targetDate) {
+      continue;
+    }
+
     const { data: existing, error: existingError } = await admin
       .from("daily_task_instances")
       .select("task_id")
       .eq("template_id", template.id)
-      .eq("run_date", runDate)
+      .eq("run_date", targetDate)
       .maybeSingle();
 
     if (existingError) throw existingError;
@@ -248,12 +291,12 @@ async function ensureDailyTasks() {
         .from("daily_task_instances")
         .delete()
         .eq("template_id", template.id)
-        .eq("run_date", runDate);
-      await createTaskFromTemplate(template, "repaired");
+        .eq("run_date", targetDate);
+      await createTaskFromTemplate(template, "repaired", targetDate);
       continue;
     }
 
-    await createTaskFromTemplate(template, "created");
+    await createTaskFromTemplate(template, "created", targetDate);
   }
 
   return result;

@@ -89,8 +89,20 @@ p {
 
 .login-screen {
   background:
-    linear-gradient(rgba(15, 30, 26, 0.78), rgba(15, 30, 26, 0.78)),
-    url("https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1800&q=80") center/cover;
+    radial-gradient(circle at 70% 22%, rgba(78, 218, 220, 0.18), transparent 30%),
+    linear-gradient(135deg, rgba(8, 12, 31, 0.38), rgba(4, 22, 30, 0.68)),
+    url("./assets/login-background.jpg") center/cover;
+  position: relative;
+}
+
+.login-screen::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(3, 8, 18, 0.5), transparent 42%),
+    radial-gradient(circle at 50% 70%, rgba(58, 216, 230, 0.14), transparent 34%);
 }
 
 .login-panel,
@@ -107,6 +119,31 @@ p {
 .login-panel {
   width: min(440px, 100%);
   padding: 28px;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.14));
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  box-shadow: 0 34px 110px rgba(2, 8, 22, 0.36);
+  backdrop-filter: blur(24px) saturate(140%);
+}
+
+.login-panel h1,
+.login-panel label {
+  color: #f8fffd;
+}
+
+.login-panel p {
+  color: rgba(241, 255, 251, 0.78);
+}
+
+.login-panel input {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.login-panel input::placeholder {
+  color: rgba(255, 255, 255, 0.64);
 }
 
 .brand-lockup,
@@ -2774,7 +2811,7 @@ progress {
   height: 100vh;
   border-radius: 0;
   overflow: auto;
-  padding: 18px;
+  padding: 18px 18px 112px;
 }
 
 .drawer-head {
@@ -2833,6 +2870,14 @@ progress {
 
 .checklist .done {
   color: #7a8884;
+}
+
+.checklist-item-editor.done {
+  text-decoration: none;
+}
+
+.checklist-item-editor.done .checklist-title-row input[type="text"],
+.checklist-item-editor.done .checklist-title-row input:not([type]) {
   text-decoration: line-through;
 }
 
@@ -3672,4 +3717,291 @@ progress {
 
 :root[data-theme="dark"] .app-main {
   background: transparent;
+}
+
+/* Production dark polish: final pass for surfaces that previously leaked light cards. */
+:root[data-theme="dark"] .report-bar,
+:root[data-theme="dark"] .task-line,
+:root[data-theme="dark"] .project-info-card,
+:root[data-theme="dark"] .role-list-item,
+:root[data-theme="dark"] .project-row-select,
+:root[data-theme="dark"] .people-row-select,
+:root[data-theme="dark"] .daily-run-item,
+:root[data-theme="dark"] .checklist-item-editor,
+:root[data-theme="dark"] .check-row.checklist-title-row,
+:root[data-theme="dark"] .checklist-meta-grid label,
+:root[data-theme="dark"] .completion-note-field,
+:root[data-theme="dark"] .comment-list article {
+  border-color: rgba(197, 231, 220, 0.13);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(211, 172, 77, 0.055), transparent 28%),
+    linear-gradient(135deg, rgba(13, 33, 27, 0.98), rgba(5, 17, 14, 0.98));
+  color: #f5fffb;
+}
+
+:root[data-theme="dark"] .drawer-savebar {
+  border-color: rgba(197, 231, 220, 0.12);
+  background:
+    linear-gradient(180deg, rgba(5, 17, 14, 0.72) 0%, rgba(5, 17, 14, 0.98) 45%),
+    #06110e;
+}
+
+:root[data-theme="dark"] .drawer-section {
+  border-top-color: rgba(197, 231, 220, 0.13);
+}
+
+:root[data-theme="dark"] .checklist-item-editor input,
+:root[data-theme="dark"] .checklist-item-editor select,
+:root[data-theme="dark"] .checklist-item-editor textarea,
+:root[data-theme="dark"] .completion-note-field textarea,
+:root[data-theme="dark"] .comment-form input {
+  border-color: rgba(197, 231, 220, 0.14);
+  background-color: rgba(3, 14, 11, 0.88);
+  color: #f5fffb;
+}
+
+:root[data-theme="dark"] .checklist-title-row input[type="text"],
+:root[data-theme="dark"] .checklist-title-row input:not([type]) {
+  background: transparent;
+}
+
+:root[data-theme="dark"] .report-bar strong,
+:root[data-theme="dark"] .report-bar b,
+:root[data-theme="dark"] .task-line span,
+:root[data-theme="dark"] .task-line strong,
+:root[data-theme="dark"] .daily-run-item strong,
+:root[data-theme="dark"] .project-info-card strong,
+:root[data-theme="dark"] .project-info-card b,
+:root[data-theme="dark"] .role-list-item strong,
+:root[data-theme="dark"] .people-row-select strong,
+:root[data-theme="dark"] .checklist-title-row input {
+  color: #f8fffd;
+}
+
+:root[data-theme="dark"] .report-bar span,
+:root[data-theme="dark"] .task-line small,
+:root[data-theme="dark"] .daily-run-item span,
+:root[data-theme="dark"] .project-info-card p,
+:root[data-theme="dark"] .role-list-item p,
+:root[data-theme="dark"] .people-row-select small,
+:root[data-theme="dark"] .checklist-meta-grid label span {
+  color: #a9c6bc;
+}
+
+:root[data-theme="dark"] .report-bar-track,
+:root[data-theme="dark"] .checklist-item-editor .progress-track {
+  background: rgba(211, 234, 226, 0.14);
+}
+
+/* Current product polish */
+.sidebar-user {
+  position: relative;
+}
+
+.sidebar-theme-icon {
+  margin-left: auto;
+  width: 34px;
+  height: 34px;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.project-column {
+  border-top: 3px solid var(--project-accent, #39d0a0);
+}
+
+.project-column-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.project-column-title > span:last-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.project-column-title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-column-title small {
+  color: #5d746d;
+  font-size: 0.76rem;
+}
+
+.project-column-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  color: var(--project-accent, #39d0a0);
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  box-shadow: inset 0 0 0 1px var(--project-accent, #39d0a0);
+  background: rgba(22, 119, 97, 0.08);
+}
+
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fresh-pill {
+  border-radius: 999px;
+  background: linear-gradient(135deg, #20b486, #84f2c5);
+  color: #062018;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 950;
+  padding: 3px 7px;
+  text-transform: uppercase;
+}
+
+.fresh-card {
+  box-shadow:
+    inset 3px 0 0 #38d69e,
+    0 16px 36px rgba(23, 76, 61, 0.08);
+}
+
+.checklist-action-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.checklist-meta-action {
+  width: 31px;
+  height: 31px;
+  color: #31554b;
+  background: #eef6f3;
+}
+
+.checklist-meta-action.active {
+  color: #073c30;
+  background: #ccefe3;
+}
+
+.checklist-inline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.checklist-inline-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  background: #edf5f2;
+  color: #426158;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 5px 8px;
+}
+
+.checklist-meta-popover {
+  border: 1px solid rgba(74, 99, 91, 0.14);
+  border-radius: 12px;
+  background: #f8fbfa;
+  padding: 10px;
+  box-shadow: 0 18px 38px rgba(32, 55, 48, 0.1);
+}
+
+.save-state-note {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-radius: 12px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  padding: 9px 10px;
+}
+
+.save-state-note.success {
+  background: #dff8ec;
+  color: #0f6b4e;
+}
+
+.save-state-note.error {
+  background: #ffe8e5;
+  color: #a7352e;
+}
+
+.primary-action.save-success {
+  background: linear-gradient(135deg, #20a878, #74d9b5);
+}
+
+.template-form-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.template-select-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.daily-template-card.selected {
+  border-color: rgba(22, 119, 97, 0.44);
+  box-shadow: inset 4px 0 0 #167761;
+}
+
+:root[data-theme="dark"] .sidebar-theme-icon {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .project-column-title small {
+  color: #93bab0;
+}
+
+:root[data-theme="dark"] .project-column-icon {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:root[data-theme="dark"] .fresh-pill {
+  background: linear-gradient(135deg, #20b486, #9bf5cf);
+  color: #041b15;
+}
+
+:root[data-theme="dark"] .checklist-meta-action {
+  background: rgba(203, 232, 222, 0.08);
+  color: #cce7de;
+}
+
+:root[data-theme="dark"] .checklist-meta-action.active {
+  background: rgba(50, 199, 148, 0.2);
+  color: #bff6df;
+}
+
+:root[data-theme="dark"] .checklist-inline-meta span,
+:root[data-theme="dark"] .checklist-meta-popover {
+  border-color: rgba(197, 231, 220, 0.13);
+  background: rgba(8, 27, 22, 0.98);
+  color: #cce7de;
+}
+
+:root[data-theme="dark"] .save-state-note.success {
+  background: rgba(34, 166, 122, 0.22);
+  color: #c5f8df;
+}
+
+:root[data-theme="dark"] .save-state-note.error {
+  background: rgba(190, 55, 47, 0.2);
+  color: #ffc5bd;
 }

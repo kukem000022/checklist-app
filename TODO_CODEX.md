@@ -8,6 +8,18 @@
 
 ## Da lam trong checkpoint nay
 
+- Checkpoint UI/task dinh ky moi nhat:
+  - Doi login sang anh nen forest noi bo va glass-style panel, khong phu thuoc anh remote.
+  - Chuyen nut theme thanh icon nho nam gan thong tin user/admin o sidebar.
+  - Lam noi bat header tung du an tren bang task bang icon folder va accent mau.
+  - Task moi tao trong 24h duoc sort len tren va co nhan `Moi`.
+  - Bo sung tab loc `Dang lam` va `Da huy`.
+  - Drawer task: checklist con chi hien icon chi dinh/deadline/xoa tren cung dong; bam icon moi mo popup chinh chi dinh/deadline.
+  - Drawer task: nut `Luu thay doi` co spinner khi dang luu va thong bao `Da luu thanh cong` gan ngay nut.
+  - Them task dinh ky `hang thang`, bấm vào mẫu trong danh sách để sửa lại.
+  - Backend task dinh ky thang: neu ngay dinh ky roi vao Thu 7/CN thi tu day sang ngay lam viec tiep theo.
+  - Tao SQL update rieng `supabase/run_this_update_recurring_monthly.sql`.
+  - Sua lai fallback loi API bi loi font tieng Viet.
 - Xac nhan backend local `http://localhost:3978/health` dang OK.
 - Xac nhan frontend local `http://localhost:5173` dang tra 200.
 - Tao `work/qa-smoke.mjs` de login admin va goi cac endpoint chinh.
@@ -63,10 +75,12 @@
 - `frontend/src/api.js`
 - `frontend/src/main.jsx`
 - `frontend/src/styles.css`
+- `frontend/src/assets/login-background.jpg`
 - `backend/src/server.js`
 - `backend/src/reminders.js`
 - `supabase/schema.sql`
 - `supabase/run_this_fix_tasklist_encoding.sql`
+- `supabase/run_this_update_recurring_monthly.sql`
 - `scripts/sync-to-main.ps1`
 - `render.yaml`
 - `.github/workflows/deploy-frontend.yml`
@@ -148,11 +162,50 @@
   - Cap nhat docs deploy voi `APP_ORIGIN=https://kukem000022.github.io` va `VITE_BASE_PATH=/checklist-app/`.
   - Workspace o C co `.git` rong nen khong commit/push truc tiep tu folder C duoc.
   - Can commit/push tu `D:\Codex_Project` sau khi sync file moi nhat.
+- Checkpoint test deploy bang tai khoan user cung cap:
+  - User cho phep test bang tai khoan `duydy@kootoro.com`.
+  - Moi truong Codex hien tai bi chan truy cap network ra ngoai: mo GitHub Pages bang browser headless bi `ERR_NETWORK_ACCESS_DENIED`, fetch GitHub Pages/Render cung fail.
+  - Chua the login/test toc do deployed app truc tiep tu Codex trong turn nay.
+  - QA static tiep tuc va thay `frontend/src/api.js` con 1 thong bao loi API bi mojibake.
+  - Da thay thong bao fallback thanh `Không thể kết nối API`.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - Da chay `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
+- Fix them UI dark mode sau checkpoint:
+  - Audit CSS cac surface tung bi trang: task drawer checklist, drawer savebar, report bars, task-line, project/role/people rows.
+  - Them lop `Production dark polish` cuoi `frontend/src/styles.css` de ep cac card/form con dung nen dark, text sang, border nhe.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - Da chay `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
+- Fix UI drawer/checklist sau audit CSS build:
+  - Phat hien `frontend/src/styles.css` co 2 rule `.drawer`; rule sau ghi de mat `padding-bottom: 112px`, co the lam nut sticky `Luu thay doi` che form binh luan.
+  - Sua `.drawer` thanh `padding: 18px 18px 112px`.
+  - Sua checklist item da hoan thanh khong con gach ngang ca khung/select/textarea; chi gach ten cong viec.
+  - Them dark border cho `.drawer-section` de khong con duong vien sang trong dark mode.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - Da chay `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
+  - Thu truy cap `https://kukem000022.github.io/checklist-app/` bang Node runtime van fail `fetch failed` do network sandbox, chua the login/test online trong Codex.
+- Fix first paint dark mode:
+  - Them script nho vao `frontend/index.html` de set `data-theme` va background ngay trong head truoc khi React bundle tai, giam nguy co nhay nen trang tren GitHub Pages.
+  - Boc doc/ghi `localStorage` theme trong `frontend/src/main.jsx` bang helper an toan, tranh loi neu browser chan storage.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - Da chay `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
+  - Da verify `frontend/dist/index.html` co script theme trong head va asset `/checklist-app/assets/...`.
+  - Thu truy cap GitHub Pages bang Node runtime van fail `fetch failed` do network sandbox.
+- Sau checkpoint UI/task dinh ky moi nhat:
+  - `npm.cmd run lint` pass.
+  - `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
+  - `npm.cmd run build` pass.
 
 ## Loi con lai / viec chua xong
 
 - Chua QA API authenticated/runtime bang tai khoan admin vi sandbox chan ket noi Supabase.
 - Chua QA UI bang trinh duyet that trong moi truong nay vi khong co browser-control tool kha dung trong turn nay.
+- Chua QA deployed app bang tai khoan `duydy@kootoro.com` vi sandbox chan network ra GitHub Pages/Render.
+- Can chay SQL `supabase/run_this_update_recurring_monthly.sql` tren Supabase truoc khi dung task dinh ky thang o moi truong da co database cu.
 - Cac luong da QA tinh/code review:
   - Dashboard / Reports voi task members.
   - Nhan su / role / project members.

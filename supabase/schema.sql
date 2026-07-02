@@ -176,6 +176,8 @@ create table if not exists public.daily_task_templates (
   title text not null,
   description text,
   due_time time not null default '17:00',
+  recurrence_type text not null default 'daily' check (recurrence_type in ('daily', 'monthly')),
+  monthly_day int check (monthly_day is null or monthly_day between 1 and 31),
   checklist_items text[] not null default '{}',
   requires_note boolean not null default true,
   active boolean not null default true,

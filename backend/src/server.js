@@ -779,6 +779,8 @@ app.post("/api/daily-templates", async (req, res, next) => {
         title: z.string().min(2),
         description: z.string().nullable().optional(),
         due_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).default("17:00"),
+        recurrence_type: z.enum(["daily", "monthly"]).default("daily"),
+        monthly_day: z.number().int().min(1).max(31).nullable().optional(),
         checklist_items: z.array(z.string().min(1)).default([]),
         requires_note: z.boolean().default(true),
         active: z.boolean().default(true),
@@ -791,7 +793,10 @@ app.post("/api/daily-templates", async (req, res, next) => {
 
     const { data, error } = await req.db
       .from("daily_task_templates")
-      .insert(body)
+      .insert({
+        ...body,
+        monthly_day: body.recurrence_type === "monthly" ? body.monthly_day || 1 : null,
+      })
       .select()
       .single();
 
@@ -811,6 +816,8 @@ app.patch("/api/daily-templates/:templateId", async (req, res, next) => {
         title: z.string().min(2).optional(),
         description: z.string().nullable().optional(),
         due_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
+        recurrence_type: z.enum(["daily", "monthly"]).optional(),
+        monthly_day: z.number().int().min(1).max(31).nullable().optional(),
         checklist_items: z.array(z.string().min(1)).optional(),
         requires_note: z.boolean().optional(),
         active: z.boolean().optional(),
@@ -819,7 +826,7 @@ app.patch("/api/daily-templates/:templateId", async (req, res, next) => {
 
     const { data: currentTemplate, error: templateFetchError } = await req.db
       .from("daily_task_templates")
-      .select("project_id, assignee_id")
+      .select("project_id, assignee_id, recurrence_type")
       .eq("id", req.params.templateId)
       .single();
 
@@ -834,9 +841,15 @@ app.patch("/api/daily-templates/:templateId", async (req, res, next) => {
       await assertTaskMemberIds(nextProjectId, [nextAssigneeId]);
     }
 
+    const patch = { ...body };
+    const nextRecurrenceType = patch.recurrence_type || currentTemplate.recurrence_type || "daily";
+    if (Object.prototype.hasOwnProperty.call(patch, "recurrence_type") || Object.prototype.hasOwnProperty.call(patch, "monthly_day")) {
+      patch.monthly_day = nextRecurrenceType === "monthly" ? patch.monthly_day || 1 : null;
+    }
+
     const { data, error } = await req.db
       .from("daily_task_templates")
-      .update(body)
+      .update(patch)
       .eq("id", req.params.templateId)
       .select()
       .single();
