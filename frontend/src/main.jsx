@@ -86,6 +86,7 @@ const emptyProjectForm = {
   description: "",
   manager_id: "",
   telegram_group_chat_id: "",
+  avatar_url: "",
 };
 
 const avatarMaxBytes = 500 * 1024;
@@ -181,6 +182,16 @@ function AvatarChip({ profile, className = "" }) {
   );
 }
 
+function ProjectAvatar({ project, fallbackProfile, className = "" }) {
+  const label = project?.name || personName(fallbackProfile) || "Dự án";
+  const avatarUrl = project?.avatar_url || (!project ? fallbackProfile?.avatar_url : "");
+  return (
+    <span className={`project-avatar ${className}`}>
+      {avatarUrl ? <img src={avatarUrl} alt={label} /> : <FolderKanban size={18} />}
+    </span>
+  );
+}
+
 function roleLabel(role) {
   return {
     admin: "Admin",
@@ -193,7 +204,6 @@ function statusLabel(status) {
   return {
     todo: "Chưa bắt đầu",
     doing: "Đang làm",
-    review: "Chờ xác nhận",
     done: "Hoàn thành",
     cancelled: "Đã hủy",
   }[status] || status;
@@ -221,6 +231,16 @@ function checklistProgress(task) {
   const items = task.task_checklists || [];
   if (!items.length) return 0;
   return Math.round((items.filter((item) => item.is_done).length / items.length) * 100);
+}
+
+function projectStatusLabel(status) {
+  return {
+    planning: "Lên kế hoạch",
+    active: "Đang hoạt động",
+    paused: "Tạm dừng",
+    completed: "Hoàn thành",
+    inactive: "Tạm ngưng",
+  }[status] || status;
 }
 
 function taskInvolvesProfile(task, profileId) {
@@ -308,6 +328,18 @@ function Modal({ title, children, onClose }) {
   );
 }
 
+function themeLabel(theme) {
+  return {
+    dark: "Dark xanh",
+    purple: "Purple dark",
+    light: "Light mode",
+  }[theme] || "Dark xanh";
+}
+
+function themeIcon(theme) {
+  return theme === "light" ? Moon : Sun;
+}
+
 function Sidebar({ activePage, setActivePage, profile, theme, toggleTheme }) {
   const allowedItems = navItems.filter((item) => !item.adminOnly || profile?.role === "admin");
   return (
@@ -344,9 +376,9 @@ function Sidebar({ activePage, setActivePage, profile, theme, toggleTheme }) {
           className="icon-button sidebar-theme-icon"
           type="button"
           onClick={toggleTheme}
-          title={theme === "dark" ? "Đổi sang light mode" : "Đổi sang dark mode"}
+          title={`Đổi theme. Hiện tại: ${themeLabel(theme)}`}
         >
-          {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+          {React.createElement(themeIcon(theme), { size: 17 })}
         </button>
       </div>
     </aside>
@@ -363,8 +395,8 @@ function Topbar({ activePage, profile, loading, onRefresh, openModal, theme, tog
         <p>{personName(profile)} · {roleLabel(profile?.role)}</p>
       </div>
       <div className="topbar-actions">
-        <button className="icon-button theme-icon-button" onClick={toggleTheme} title={theme === "dark" ? "Đổi sang light mode" : "Đổi sang dark mode"}>
-          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        <button className="icon-button theme-icon-button" onClick={toggleTheme} title={`Đổi theme. Hiện tại: ${themeLabel(theme)}`}>
+          {React.createElement(themeIcon(theme), { size: 18 })}
         </button>
         <button className={showTaskButton ? "secondary-action" : "hidden-action"} onClick={() => openModal("task")}>
           <Plus size={17} />
@@ -466,12 +498,12 @@ function ReportsPage({ tasks, projects, profiles, notifications }) {
     const total = tasks.length || 1;
     const done = tasks.filter((task) => task.status === "done").length;
     const overdue = tasks.filter(isOverdue).length;
-    const active = tasks.filter((task) => ["todo", "doing", "review"].includes(task.status)).length;
+    const active = tasks.filter((task) => ["todo", "doing"].includes(task.status)).length;
     const highPriority = tasks.filter((task) => task.priority === "high").length;
     const completionRate = Math.round((done / total) * 100);
     const overdueRate = Math.round((overdue / total) * 100);
 
-    const byStatus = ["todo", "doing", "review", "done", "cancelled"].map((status) => ({
+    const byStatus = ["todo", "doing", "done", "cancelled"].map((status) => ({
       label: statusLabel(status),
       value: tasks.filter((task) => task.status === status).length,
     }));
@@ -499,7 +531,7 @@ function ReportsPage({ tasks, projects, profiles, notifications }) {
           name: personName(profile),
           total: personTasks.length,
           overdue: personTasks.filter(isOverdue).length,
-          review: personTasks.filter((task) => task.status === "review").length,
+          open: personTasks.filter((task) => ["todo", "doing"].includes(task.status)).length,
         };
       })
       .filter((person) => person.total > 0);
@@ -557,7 +589,7 @@ function ReportsPage({ tasks, projects, profiles, notifications }) {
               label={person.name}
               value={person.total}
               max={Math.max(...report.byPerson.map((item) => item.total), 1)}
-              note={`${person.overdue} quá hạn · ${person.review} chờ duyệt`}
+              note={`${person.overdue} quá hạn · ${person.open} đang mở`}
               danger={person.overdue > 0}
             />
           ))}
@@ -684,7 +716,6 @@ function sortTasksNewestFirst(items) {
 const boardColumns = [
   { id: "todo", title: "Chưa bắt đầu", hint: "Việc cần chuẩn bị" },
   { id: "doing", title: "Đang làm", hint: "Đang được xử lý" },
-  { id: "review", title: "Chờ xác nhận", hint: "Cần quản lý duyệt" },
   { id: "done", title: "Hoàn thành", hint: "Đã xong" },
   { id: "cancelled", title: "Đã hủy", hint: "Không tiếp tục" },
 ];
@@ -710,7 +741,6 @@ function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, o
     if (!deadlineFilterMatch(task, deadline)) return false;
     if (tab === "overdue" && !isOverdue(task)) return false;
     if (tab === "doing" && task.status !== "doing") return false;
-    if (tab === "review" && task.status !== "review") return false;
     if (tab === "done" && task.status !== "done") return false;
     if (tab === "cancelled" && task.status !== "cancelled") return false;
     return true;
@@ -728,7 +758,6 @@ function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, o
     ["all", "Tất cả", tasks.length],
     ["overdue", "Quá hạn", stats.overdue],
     ["doing", "Đang làm", stats.doing],
-    ["review", "Chờ xác nhận", tasks.filter((task) => task.status === "review").length],
     ["done", "Hoàn thành", stats.done],
     ["cancelled", "Đã hủy", tasks.filter((task) => task.status === "cancelled").length],
   ];
@@ -855,7 +884,6 @@ function Filters({ filters, setFilters, projects, profiles, deadline, setDeadlin
             <option value="">Tất cả trạng thái</option>
             <option value="todo">Chưa bắt đầu</option>
             <option value="doing">Đang làm</option>
-            <option value="review">Chờ xác nhận</option>
             <option value="done">Hoàn thành</option>
             <option value="cancelled">Đã hủy</option>
           </select>
@@ -903,17 +931,11 @@ function ProjectGroupedTaskBoards({ groups, openTask, profile }) {
       <div className="tasklist-board">
         {groups.map((group) => {
           const urgentCount = group.tasks.filter((task) => isOverdue(task) || isDueSoon(task)).length;
-          const headerProfiles = projectHeaderProfiles(group, profile);
           return (
             <section key={group.id} className="tasklist-column project-column" style={{ "--project-accent": projectAccent(group.id) }}>
               <header className="tasklist-column-head">
                 <div className="project-column-title">
-                  <span className="project-column-avatars">
-                    {headerProfiles.slice(0, 3).map((item) => (
-                      <AvatarChip key={item.id || item.email || item.full_name} profile={item} className="project-header-avatar" />
-                    ))}
-                    {!headerProfiles.length && <FolderKanban size={15} />}
-                  </span>
+                  <ProjectAvatar project={group.project} fallbackProfile={profile} className="project-header-avatar" />
                   <span>
                     <strong>{group.title}</strong>
                     <small>{group.project ? "Dự án" : "Cá nhân"}</small>
@@ -934,27 +956,6 @@ function ProjectGroupedTaskBoards({ groups, openTask, profile }) {
       </div>
     </section>
   );
-}
-
-function projectHeaderProfiles(group, profile) {
-  if (!group.project) return profile ? [profile] : [];
-
-  const members = [];
-  if (group.project.manager) members.push(group.project.manager);
-  for (const member of group.project.project_members || []) {
-    const memberProfile = member.profiles;
-    if (memberProfile?.id && !members.some((item) => item.id === memberProfile.id)) {
-      members.push(memberProfile);
-    }
-  }
-  if (!members.length) {
-    for (const task of group.tasks || []) {
-      if (task.assignee?.id && !members.some((item) => item.id === task.assignee.id)) {
-        members.push(task.assignee);
-      }
-    }
-  }
-  return members;
 }
 
 function projectAccent(id) {
@@ -1439,6 +1440,8 @@ function ProjectsPage({ projects, profiles, tasks, openModal, openTask, addMembe
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [memberForm, setMemberForm] = useState({ project_id: "", user_id: "", role_in_project: "member" });
   const [projectTelegramId, setProjectTelegramId] = useState("");
+  const [projectAvatarUrl, setProjectAvatarUrl] = useState("");
+  const [projectStatus, setProjectStatus] = useState("active");
   const [telegramMessage, setTelegramMessage] = useState("");
   const [memberMessage, setMemberMessage] = useState("");
   const [savingProjectTelegram, setSavingProjectTelegram] = useState(false);
@@ -1462,6 +1465,8 @@ function ProjectsPage({ projects, profiles, tasks, openModal, openTask, addMembe
 
   useEffect(() => {
     setProjectTelegramId(activeProject?.telegram_group_chat_id || "");
+    setProjectAvatarUrl(activeProject?.avatar_url || "");
+    setProjectStatus(activeProject?.status || "active");
   }, [activeProject]);
 
   async function submitMember(event) {
@@ -1481,15 +1486,19 @@ function ProjectsPage({ projects, profiles, tasks, openModal, openTask, addMembe
     }
   }
 
-  async function submitProjectTelegram(event) {
+  async function submitProjectSettings(event) {
     event.preventDefault();
     if (!activeProject || savingProjectTelegram) return;
     setSavingProjectTelegram(true);
     setTelegramMessage("");
     setMemberMessage("");
     try {
-      await updateProject(activeProject.id, { telegram_group_chat_id: projectTelegramId || null });
-      setTelegramMessage("Đã lưu Telegram group chat ID cho dự án.");
+      await updateProject(activeProject.id, {
+        telegram_group_chat_id: projectTelegramId || null,
+        avatar_url: projectAvatarUrl || null,
+        status: projectStatus,
+      });
+      setTelegramMessage("Đã lưu thông tin dự án.");
     } catch (currentError) {
       setTelegramMessage(currentError.message);
     } finally {
@@ -1551,7 +1560,7 @@ function ProjectsPage({ projects, profiles, tasks, openModal, openTask, addMembe
                 <span>{(project.project_members || []).length}</span>
                 <span>{projectTasks.filter((task) => !["done", "cancelled"].includes(task.status)).length}</span>
                 <span className={projectTasks.some(isOverdue) ? "danger-text" : ""}>{projectTasks.filter(isOverdue).length}</span>
-                <span><b className="status-pill">{project.status}</b></span>
+                <span><b className={`status-pill project-status-${project.status}`}>{projectStatusLabel(project.status)}</b></span>
               </button>
             );
           })}
@@ -1568,11 +1577,22 @@ function ProjectsPage({ projects, profiles, tasks, openModal, openTask, addMembe
               <p>{activeProject.description || "Chưa có mô tả."}</p>
             </div>
             <div className="project-detail-badges">
-              <b className="status-pill">{activeProject.status}</b>
+              <b className={`status-pill project-status-${activeProject.status}`}>{projectStatusLabel(activeProject.status)}</b>
               <span>{activeProjectTasks.length} task</span>
             </div>
           </div>
-          <form className="inline-member-form" onSubmit={submitProjectTelegram}>
+          <form className="project-settings-form" onSubmit={submitProjectSettings}>
+            <div className="project-avatar-editor">
+              <ProjectAvatar project={{ ...activeProject, avatar_url: projectAvatarUrl }} className="project-detail-avatar" />
+              <label>
+                Avatar dự án
+                <input
+                  value={projectAvatarUrl}
+                  onChange={(event) => setProjectAvatarUrl(event.target.value)}
+                  placeholder="https://.../project-avatar.png"
+                />
+              </label>
+            </div>
             <label>
               Telegram group chat ID
               <input
@@ -1581,9 +1601,18 @@ function ProjectsPage({ projects, profiles, tasks, openModal, openTask, addMembe
                 placeholder="-100..."
               />
             </label>
+            <label>
+              Trạng thái dự án
+              <select value={projectStatus} onChange={(event) => setProjectStatus(event.target.value)}>
+                <option value="active">Đang hoạt động</option>
+                <option value="paused">Tạm dừng</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="inactive">Tạm ngưng</option>
+              </select>
+            </label>
             <button className="secondary-action" disabled={savingProjectTelegram}>
               {savingProjectTelegram ? <LoaderCircle size={17} className="spin" /> : <Send size={17} />}
-              {savingProjectTelegram ? "Đang lưu..." : "Lưu group Telegram"}
+              {savingProjectTelegram ? "Đang lưu..." : "Lưu dự án"}
             </button>
           </form>
           {telegramMessage && <p className="mini-notice">{telegramMessage}</p>}
@@ -1596,7 +1625,7 @@ function ProjectsPage({ projects, profiles, tasks, openModal, openTask, addMembe
             </article>
             <article className="project-info-card">
               <strong>Trạng thái task</strong>
-              <p>Task được chia theo trạng thái cố định để dễ nắm việc đang xử lý, chờ xác nhận, hoàn thành hoặc đã hủy.</p>
+              <p>Task được chia theo trạng thái cố định để dễ nắm việc chưa bắt đầu, đang làm, hoàn thành hoặc đã hủy.</p>
             </article>
           </div>
 
@@ -2429,7 +2458,6 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
             <select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value)}>
               <option value="todo">Chưa bắt đầu</option>
               <option value="doing">Đang làm</option>
-              <option value="review">Chờ xác nhận</option>
               <option value="done">Hoàn thành</option>
               <option value="cancelled">Đã hủy</option>
             </select>
@@ -2582,7 +2610,8 @@ function CreateTaskModal({ projects, profiles, profile, onCreate, onClose }) {
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyTaskForm);
-  const selectedProject = projects.find((project) => project.id === form.project_id);
+  const creatableProjects = projects.filter((project) => !["inactive", "completed"].includes(project.status));
+  const selectedProject = creatableProjects.find((project) => project.id === form.project_id);
   const projectMemberIds = new Set((selectedProject?.project_members || []).map((member) => member.user_id));
   const assignableProfiles = selectedProject
     ? profiles.filter((item) => projectMemberIds.has(item.id))
@@ -2642,7 +2671,7 @@ function CreateTaskModal({ projects, profiles, profile, onCreate, onClose }) {
     <Modal title="Tạo task mới" onClose={onClose}>
       <form onSubmit={submit} className="modal-form">
         <label className="wide-field">Tên task<input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required /></label>
-        <label>Dự án<select value={form.project_id} onChange={(event) => updateProject(event.target.value)}><option value="">Cá nhân</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+        <label>Dự án<select value={form.project_id} onChange={(event) => updateProject(event.target.value)}><option value="">Cá nhân</option>{creatableProjects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
         <label>Phụ trách<select value={form.assignee_id} onChange={(event) => setForm({ ...form, assignee_id: event.target.value })}><option value="">{selectedProject ? "Chọn người phụ trách" : "Tôi phụ trách"}</option>{assignableProfiles.map((item) => <option key={item.id} value={item.id}>{personName(item)}</option>)}</select></label>
         {selectedProject && (
           <div className="wide-field role-checkbox-panel compact-role-picker">
@@ -2764,6 +2793,7 @@ function CreateProjectModal({ profiles, profile, onCreate, onClose }) {
         description: form.description || null,
         manager_id: form.manager_id || profile.id,
         telegram_group_chat_id: form.telegram_group_chat_id || null,
+        avatar_url: form.avatar_url || null,
       });
       onClose();
     } catch (currentError) {
@@ -2778,6 +2808,7 @@ function CreateProjectModal({ profiles, profile, onCreate, onClose }) {
         <label>Tên dự án<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></label>
         <label>Quản lý<select value={form.manager_id} onChange={(event) => setForm({ ...form, manager_id: event.target.value })}>{profiles.map((item) => <option key={item.id} value={item.id}>{personName(item)}</option>)}</select></label>
         <label>Telegram group chat ID<input value={form.telegram_group_chat_id} onChange={(event) => setForm({ ...form, telegram_group_chat_id: event.target.value })} placeholder="-100..." /></label>
+        <label>Avatar dự án<input value={form.avatar_url} onChange={(event) => setForm({ ...form, avatar_url: event.target.value })} placeholder="https://.../project-avatar.png" /></label>
         <label className="wide-field">Mô tả<textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
         {error && <p className="form-error wide-field">{error}</p>}
 
@@ -2792,7 +2823,8 @@ function CreateProjectModal({ profiles, profile, onCreate, onClose }) {
 
 function getInitialTheme() {
   try {
-    return localStorage.getItem("checklist-theme") || "dark";
+    const storedTheme = localStorage.getItem("checklist-theme");
+    return ["dark", "purple", "light"].includes(storedTheme) ? storedTheme : "dark";
   } catch {
     return "dark";
   }
@@ -2829,7 +2861,11 @@ function AppShell() {
   }, [theme]);
 
   function toggleTheme() {
-    setTheme((current) => (current === "dark" ? "light" : "dark"));
+    setTheme((current) => {
+      if (current === "dark") return "purple";
+      if (current === "purple") return "light";
+      return "dark";
+    });
   }
 
   const load = useCallback(async () => {

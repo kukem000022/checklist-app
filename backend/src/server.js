@@ -16,6 +16,13 @@ app.use(cors({ origin: config.appOrigin.split(",").map((origin) => origin.trim()
 app.use(express.json());
 
 const SYSTEM_ROLE_ORDER = ["admin", "manager", "staff"];
+const TASK_STATUS_VALUES = ["todo", "doing", "done", "cancelled"];
+const TASK_STATUS_LABELS = {
+  todo: "Chưa bắt đầu",
+  doing: "Đang làm",
+  done: "Hoàn thành",
+  cancelled: "Đã hủy",
+};
 
 function primaryRole(roleIds = []) {
   return SYSTEM_ROLE_ORDER.find((role) => roleIds.includes(role)) || roleIds[0] || "staff";
@@ -102,6 +109,54 @@ async function setAppSetting(key, value) {
 
   if (error) throw error;
   return data;
+}
+
+function formatTelegramDate(value) {
+  if (!value) return "Chưa đặt";
+  return new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Asia/Ho_Chi_Minh",
+  }).format(new Date(value));
+}
+
+function escapeTelegramHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function telegramPersonName(profile) {
+  return escapeTelegramHtml(profile?.full_name || profile?.email || "Nhân sự");
+}
+
+function telegramMention(profile) {
+  const chatId = String(profile?.telegram_chat_id || "").trim();
+  const name = telegramPersonName(profile);
+  if (/^-?\d+$/.test(chatId)) {
+    return `<a href="tg://user?id=${chatId}">${name}</a>`;
+  }
+  return name;
+}
+
+function buildTaskTelegramMessage(type, task, project, recipients = []) {
+  const title = type === "new_task" ? "✅ TASK MỚI" : "⚠️ TASK QUÁ HẠN";
+  const projectName = escapeTelegramHtml(project?.name || "Cá nhân");
+  const recipientText = recipients.length
+    ? recipients.map(telegramMention).join(", ")
+    : "Chưa rõ";
+  return [
+    `<b>${title}</b>`,
+    `• <b>Dự án:</b> ${projectName}`,
+    `• <b>Nhân sự:</b> ${recipientText}`,
+    `• <b>Task:</b> ${escapeTelegramHtml(task.title)}`,
+    task.due_time ? `• <b>Deadline:</b> ${formatTelegramDate(task.due_time)}` : null,
+    `• <b>Trạng thái:</b> ${TASK_STATUS_LABELS[task.status] || task.status || "Chưa bắt đầu"}`,
+    type === "new_task"
+      ? "Vui lòng kiểm tra và cập nhật tiến độ trong hệ thống."
+      : "Task đã quá hạn. Vui lòng cập nhật tiến độ hoặc ghi chú lý do xử lý trễ.",
+  ].filter(Boolean).join("\n");
 }
 
 async function assertTaskMemberIds(projectId, memberIds = []) {
@@ -500,8 +555,11 @@ app.post("/api/projects", async (req, res, next) => {
         description: z.string().optional().nullable(),
         manager_id: z.string().uuid().optional().nullable(),
         telegram_group_chat_id: z.string().optional().nullable(),
+        avatar_url: z.string().optional().nullable(),
+        avatar_path: z.string().optional().nullable(),
         start_date: z.string().optional().nullable(),
         end_date: z.string().optional().nullable(),
+        status: z.enum(["planning", "active", "paused", "completed", "inactive"]).default("active"),
       })
       .parse(req.body);
 
@@ -548,9 +606,11 @@ app.patch("/api/projects/:projectId", async (req, res, next) => {
         description: z.string().optional().nullable(),
         manager_id: z.string().uuid().optional().nullable(),
         telegram_group_chat_id: z.string().optional().nullable(),
+        avatar_url: z.string().optional().nullable(),
+        avatar_path: z.string().optional().nullable(),
         start_date: z.string().optional().nullable(),
         end_date: z.string().optional().nullable(),
-        status: z.enum(["planning", "active", "paused", "completed"]).optional(),
+        status: z.enum(["planning", "active", "paused", "completed", "inactive"]).optional(),
       })
       .parse(req.body);
 
@@ -682,7 +742,7 @@ app.get("/api/tasks", async (req, res, next) => {
       .from("tasks")
       .select(`
         *,
-        projects(id, name, telegram_group_chat_id),
+        projects(id, name, telegram_group_chat_id, avatar_url, avatar_path),
         task_lists(id, title),
         assignee:profiles!tasks_assignee_id_fkey(id, full_name, email, avatar_url, avatar_path),
         creator:profiles!tasks_creator_id_fkey(id, full_name, email, avatar_url, avatar_path),
@@ -949,23 +1009,11 @@ app.post("/api/tasks", async (req, res, next) => {
       { id: assigneeId, ...assignee },
       ...(taskMembers || []).filter((member) => member.id !== assigneeId),
     ].filter((recipient) => recipient.id);
-    const recipientNames = recipients
-      .map((recipient) => recipient.full_name || recipient.email)
-      .filter(Boolean)
-      .join(", ");
 
     if (targetGroupChatId) {
       const result = await sendTelegramMessage(
         targetGroupChatId,
-        [
-          "TASK MOI",
-          `Du an: ${project?.name || "Ca nhan"}`,
-          `Nhan su: ${recipientNames || assignee?.full_name || assignee?.email || "Nhan su"}`,
-          `Task: ${task.title}`,
-          task.due_time ? `Deadline: ${task.due_time}` : null,
-        ]
-          .filter(Boolean)
-          .join("\n"),
+        buildTaskTelegramMessage("new_task", task, project, recipients),
       );
       if (recipients.length) {
         await admin.from("task_notifications").insert(
@@ -981,15 +1029,7 @@ app.post("/api/tasks", async (req, res, next) => {
       for (const recipient of recipients) {
         const result = await sendTelegramMessage(
           recipient.telegram_chat_id,
-          [
-            "TASK MOI",
-            `Du an: ${project?.name || "Ca nhan"}`,
-            `Nhan su: ${recipient.full_name || recipient.email || "Nhan su"}`,
-            `Task: ${task.title}`,
-            task.due_time ? `Deadline: ${task.due_time}` : null,
-          ]
-            .filter(Boolean)
-            .join("\n"),
+          buildTaskTelegramMessage("new_task", task, project, [recipient]),
         );
         await admin.from("task_notifications").insert({
           task_id: task.id,
@@ -1017,7 +1057,7 @@ app.patch("/api/tasks/:taskId", async (req, res, next) => {
         start_time: z.string().nullable().optional(),
         due_time: z.string().nullable().optional(),
         priority: z.enum(["high", "medium", "low"]).optional(),
-        status: z.enum(["todo", "doing", "review", "done", "cancelled"]).optional(),
+        status: z.enum(TASK_STATUS_VALUES).optional(),
       })
       .parse(req.body);
 
@@ -1071,7 +1111,7 @@ app.patch("/api/tasks/:taskId/detail", async (req, res, next) => {
             start_time: z.string().nullable().optional(),
             due_time: z.string().nullable().optional(),
             priority: z.enum(["high", "medium", "low"]).optional(),
-            status: z.enum(["todo", "doing", "review", "done", "cancelled"]).optional(),
+            status: z.enum(TASK_STATUS_VALUES).optional(),
           })
           .default({}),
         member_ids: z.array(z.string().uuid()).optional(),
@@ -1161,14 +1201,13 @@ app.patch("/api/tasks/:taskId/detail", async (req, res, next) => {
       }
     }
 
-    const existingIds = body.checklist.filter((item) => item.id).map((item) => item.id);
     const deletedIds = body.checklist.filter((item) => item.id && item.deleted).map((item) => item.id);
     if (deletedIds.length) {
       const { error: deleteError } = await req.db.from("task_checklists").delete().in("id", deletedIds);
       if (deleteError) throw deleteError;
     }
 
-    const upserts = body.checklist
+    const checklistRows = body.checklist
       .filter((item) => !item.deleted)
       .map((item, index) => ({
         id: item.id,
@@ -1181,12 +1220,36 @@ app.patch("/api/tasks/:taskId/detail", async (req, res, next) => {
         sort_order: item.sort_order ?? index,
       }));
 
-    if (upserts.length) {
-      const { error: upsertError } = await req.db
+    const existingRows = checklistRows.filter((item) => item.id);
+    for (const row of existingRows) {
+      const { id, ...patch } = row;
+      const { error: updateChecklistError } = await req.db
         .from("task_checklists")
-        .upsert(upserts, { onConflict: "id" });
+        .update(patch)
+        .eq("id", id)
+        .eq("task_id", req.params.taskId);
 
-      if (upsertError) throw upsertError;
+      if (updateChecklistError) throw updateChecklistError;
+    }
+
+    const newRows = checklistRows
+      .filter((item) => !item.id)
+      .map((item) => ({
+        task_id: item.task_id,
+        title: item.title,
+        assignee_id: item.assignee_id,
+        due_time: item.due_time,
+        note: item.note,
+        is_done: item.is_done,
+        sort_order: item.sort_order,
+      }));
+
+    if (newRows.length) {
+      const { error: insertChecklistError } = await req.db
+        .from("task_checklists")
+        .insert(newRows);
+
+      if (insertChecklistError) throw insertChecklistError;
     }
 
     if (body.completion_note?.trim()) {

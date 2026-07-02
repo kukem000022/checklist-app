@@ -36,14 +36,22 @@ create table if not exists public.projects (
   description text,
   manager_id uuid references public.profiles(id),
   telegram_group_chat_id text,
+  avatar_url text,
+  avatar_path text,
   start_date date,
   end_date date,
-  status text not null default 'active' check (status in ('planning', 'active', 'paused', 'completed')),
+  status text not null default 'active' check (status in ('planning', 'active', 'paused', 'completed', 'inactive')),
   created_at timestamptz not null default now()
 );
 
 alter table public.projects
 add column if not exists telegram_group_chat_id text;
+
+alter table public.projects
+add column if not exists avatar_url text;
+
+alter table public.projects
+add column if not exists avatar_path text;
 
 create table if not exists public.project_members (
   id uuid primary key default gen_random_uuid(),
@@ -73,7 +81,7 @@ create table if not exists public.tasks (
   start_time timestamptz,
   due_time timestamptz,
   priority text not null default 'medium' check (priority in ('high', 'medium', 'low')),
-  status text not null default 'todo' check (status in ('todo', 'doing', 'review', 'done', 'cancelled')),
+  status text not null default 'todo' check (status in ('todo', 'doing', 'done', 'cancelled')),
   completed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -142,6 +150,9 @@ add column if not exists due_time timestamptz;
 
 alter table public.task_checklists
 add column if not exists note text;
+
+alter table public.task_checklists
+alter column id set default gen_random_uuid();
 
 create table if not exists public.task_members (
   task_id uuid not null references public.tasks(id) on delete cascade,

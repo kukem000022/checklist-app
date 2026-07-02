@@ -6,6 +6,13 @@ const reminderWindows = [
   { type: "due_soon_24h", fromMinutes: 23 * 60, toMinutes: 24 * 60 },
   { type: "due_soon_2h", fromMinutes: 90, toMinutes: 120 },
 ];
+const overdueRepeatMinutes = 30;
+const statusLabels = {
+  todo: "Chưa bắt đầu",
+  doing: "Đang làm",
+  done: "Hoàn thành",
+  cancelled: "Đã hủy",
+};
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("vi-VN", {
@@ -16,7 +23,23 @@ function formatDate(value) {
 }
 
 function personLabel(profile) {
-  return profile?.full_name || profile?.email || "Nhan su";
+  return profile?.full_name || profile?.email || "Nhân sự";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function personMention(profile) {
+  const chatId = String(profile?.telegram_chat_id || "").trim();
+  const name = escapeHtml(personLabel(profile));
+  if (/^-?\d+$/.test(chatId)) {
+    return `<a href="tg://user?id=${chatId}">${name}</a>`;
+  }
+  return name;
 }
 
 function taskRecipients(task) {
@@ -34,37 +57,44 @@ function taskRecipients(task) {
 }
 
 function buildMessage(type, task, recipients = []) {
-  const projectName = task.projects?.name || "Ca nhan";
-  const assignee = recipients.length ? recipients.map(personLabel).join(", ") : personLabel(task.assignee);
-  const title = type === "overdue" ? "TASK QUA HAN" : "TASK SAP TOI HAN";
+  const projectName = escapeHtml(task.projects?.name || "Cá nhân");
+  const assignee = recipients.length ? recipients.map(personMention).join(", ") : personMention(task.assignee);
+  const title = type === "overdue" ? "⚠️ TASK QUÁ HẠN" : "⏰ TASK SẮP TỚI HẠN";
 
   return [
-    title,
-    `Du an: ${projectName}`,
-    `Nhan su: ${assignee}`,
-    `Task: ${task.title}`,
-    `Deadline: ${formatDate(task.due_time)}`,
-    `Trang thai: ${task.status}`,
+    `<b>${title}</b>`,
+    `• <b>Dự án:</b> ${projectName}`,
+    `• <b>Nhân sự:</b> ${assignee}`,
+    `• <b>Task:</b> ${escapeHtml(task.title)}`,
+    `• <b>Deadline:</b> ${formatDate(task.due_time)}`,
+    `• <b>Trạng thái:</b> ${statusLabels[task.status] || task.status || "Chưa bắt đầu"}`,
     type === "overdue"
-      ? "Can cap nhat tien do trong he thong."
-      : "Vui long kiem tra va hoan thanh dung han.",
+      ? "Task đã quá hạn. Vui lòng cập nhật tiến độ hoặc ghi chú lý do xử lý trễ."
+      : "Vui lòng kiểm tra và hoàn thành đúng hạn.",
   ].join("\n");
 }
 
 async function notificationExists(taskId, userId, type) {
   const { data, error } = await admin
     .from("task_notifications")
-    .select("id")
+    .select("id, sent_at")
     .eq("task_id", taskId)
     .eq("user_id", userId)
     .eq("type", type)
+    .order("sent_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) {
     throw error;
   }
 
-  return Boolean(data);
+  if (!data) return false;
+  if (type !== "overdue") return true;
+
+  const lastSentAt = new Date(data.sent_at).getTime();
+  if (Number.isNaN(lastSentAt)) return false;
+  return Date.now() - lastSentAt < overdueRepeatMinutes * 60 * 1000;
 }
 
 async function logNotification(taskId, userId, type, status) {
@@ -74,6 +104,18 @@ async function logNotification(taskId, userId, type, status) {
     type,
     status,
   });
+
+  if (error?.code === "23505" && type === "overdue") {
+    const { error: updateError } = await admin
+      .from("task_notifications")
+      .update({ status, sent_at: new Date().toISOString() })
+      .eq("task_id", taskId)
+      .eq("user_id", userId)
+      .eq("type", type);
+
+    if (updateError) throw updateError;
+    return;
+  }
 
   if (error && error.code !== "23505") {
     throw error;
@@ -199,13 +241,13 @@ async function ensureDailyTasks() {
 
   async function createTaskFromTemplate(template, mode, targetDate) {
     const dueTime = String(template.due_time || "17:00:00").slice(0, 8);
-    const recurrenceLabel = (template.recurrence_type || "daily") === "monthly" ? "hang thang" : "hang ngay";
+    const recurrenceLabel = (template.recurrence_type || "daily") === "monthly" ? "hằng tháng" : "hằng ngày";
     const { data: task, error: taskError } = await admin
       .from("tasks")
       .insert({
         project_id: template.project_id || null,
         title: template.title,
-        description: template.description || `Task dinh ky ${recurrenceLabel}.`,
+        description: template.description || `Task định kỳ ${recurrenceLabel}.`,
         creator_id: template.assignee_id,
         assignee_id: template.assignee_id,
         due_time: `${targetDate}T${dueTime}+07:00`,

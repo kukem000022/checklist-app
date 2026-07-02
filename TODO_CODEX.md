@@ -8,6 +8,19 @@
 
 ## Da lam trong checkpoint nay
 
+- Checkpoint project avatar / inactive / Telegram / theme:
+  - Them avatar rieng cho du an, hien avatar du an trong cot `Task cua toi`; cot ca nhan fallback avatar user dang nhap.
+  - Them chinh sua avatar URL, Telegram group ID va trang thai du an trong chi tiet du an.
+  - Them trang thai `inactive` cho du an; du an inactive/completed khong con nam trong dropdown tao task moi.
+  - Bo trang thai task `review/Cho xac nhan` khoi UI/API chinh; SQL migrate se doi task cu `review` sang `done`.
+  - Sua loi luu checklist task moi bi `null value in column "id"` bang cach update row cu va insert row moi rieng.
+  - Telegram reminder: doi form thong bao qua tieng Viet, mapping status sang nhan de doc, tag nhan su bang `telegram_chat_id` neu co.
+  - Telegram reminder qua han lap lai moi 30 phut; van fallback group du an -> group chung -> chat ca nhan.
+  - Them lua chon theme `Purple dark` theo file `Option_3_Purple_Dark_Dashboard.docx`, giu theme dark xanh/light cu.
+  - Them preload background cho theme `purple` de tranh nhay nen sang khi tai web.
+  - Co lai mat do UI bang `body font-size: 90%` tren desktop, mobile giu 100%.
+  - Cap nhat `supabase/schema.sql` va tao SQL chay them `supabase/run_this_update_project_avatar_inactive_review_cleanup.sql`.
+  - Cap nhat `scripts/sync-to-main.ps1` de sync file SQL moi sang `D:\Codex_Project`.
 - Checkpoint toi uu toc do/glass/render:
   - Cap nhat `render.yaml` them `region: singapore` cho service Render moi.
   - Cap nhat docs deploy: service Render cu o My/Oregon can tao service moi Singapore, khong nen ky vong doi region truc tiep.
@@ -98,6 +111,10 @@
 
 ## Kiem tra da chay
 
+- Sau checkpoint project avatar / inactive / Telegram / theme:
+  - `node --check backend\src\server.js` pass.
+  - `node --check backend\src\reminders.js` pass.
+  - `npm.cmd run build` pass.
 - `npm.cmd run lint` pass.
 - `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
 - `npm.cmd run build` pass.
@@ -221,6 +238,7 @@
 - Chua QA UI bang trinh duyet that trong moi truong nay vi khong co browser-control tool kha dung trong turn nay.
 - Chua QA deployed app bang tai khoan `duydy@kootoro.com` vi sandbox chan network ra GitHub Pages/Render.
 - Can chay SQL `supabase/run_this_update_recurring_monthly.sql` tren Supabase truoc khi dung task dinh ky thang o moi truong da co database cu.
+- Can chay SQL `supabase/run_this_update_project_avatar_inactive_review_cleanup.sql` tren Supabase de them avatar du an, inactive project, bo `review`, va sua default ID checklist.
 - Render service hien tai o My/Oregon khong tu doi sang Singapore sau khi sua `render.yaml`; can tao service moi tu Blueprint hoac Web Service moi voi region Singapore, copy env vars, test `/health`, roi doi `VITE_API_URL`.
 - Chua chuyen CRUD task sang Supabase direct; viec nay can audit/si chat RLS truoc de tranh lo data.
 - Cac luong da QA tinh/code review:

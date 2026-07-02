@@ -4071,3 +4071,289 @@ progress {
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.14);
   backdrop-filter: none;
 }
+
+/* Density and project identity pass */
+body {
+  font-size: 90%;
+}
+
+@media (max-width: 760px) {
+  body {
+    font-size: 100%;
+  }
+}
+
+.project-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: #0f5746;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(226, 244, 238, 0.72));
+  border: 1px solid rgba(22, 119, 97, 0.28);
+  box-shadow:
+    0 14px 32px rgba(20, 72, 58, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.64);
+  overflow: hidden;
+}
+
+.project-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.project-header-avatar {
+  width: 42px;
+  height: 42px;
+}
+
+.project-detail-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+}
+
+.project-settings-form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(220px, 1fr) minmax(160px, 0.5fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.project-avatar-editor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.project-avatar-editor label {
+  flex: 1;
+}
+
+.status-pill.project-status-inactive,
+.status-pill.muted {
+  background: rgba(137, 145, 141, 0.15);
+  color: #7d8d87;
+}
+
+:root[data-theme="dark"] .project-avatar {
+  color: #c8f6e5;
+  background:
+    linear-gradient(135deg, rgba(31, 78, 63, 0.74), rgba(7, 24, 19, 0.84));
+  border-color: rgba(116, 217, 181, 0.24);
+  box-shadow:
+    0 16px 38px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 980px) {
+  .project-settings-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Purple Dark Dashboard theme option */
+:root[data-theme="purple"] {
+  color: #f4f0ff;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(139, 92, 246, 0.22), transparent 30%),
+    radial-gradient(circle at 88% 16%, rgba(167, 139, 250, 0.12), transparent 28%),
+    linear-gradient(135deg, #0d0b16 0%, #12101f 54%, #0a0912 100%);
+  color-scheme: dark;
+}
+
+:root[data-theme="purple"] body {
+  color: #f4f0ff;
+  background: #0d0b16;
+}
+
+:root[data-theme="purple"] .app-layout,
+:root[data-theme="purple"] .app-main {
+  background: transparent;
+}
+
+:root[data-theme="purple"] .sidebar {
+  background:
+    linear-gradient(180deg, rgba(10, 9, 18, 0.96), rgba(7, 6, 12, 0.98));
+  border-right-color: #2a2440;
+}
+
+:root[data-theme="purple"] .sidebar a,
+:root[data-theme="purple"] .sidebar button,
+:root[data-theme="purple"] .sidebar-user,
+:root[data-theme="purple"] .sidebar-brand {
+  color: #c9c1dd;
+}
+
+:root[data-theme="purple"] .sidebar .active,
+:root[data-theme="purple"] .nav-item.active {
+  background: linear-gradient(135deg, #3b2a68, #2b2147);
+  color: #f4f0ff;
+  border-color: #5b3da6;
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.18);
+}
+
+:root[data-theme="purple"] .panel,
+:root[data-theme="purple"] .stat-card,
+:root[data-theme="purple"] .topbar,
+:root[data-theme="purple"] .project-task-group,
+:root[data-theme="purple"] .tasklist-column,
+:root[data-theme="purple"] .modal-panel,
+:root[data-theme="purple"] .drawer,
+:root[data-theme="purple"] .project-detail-panel,
+:root[data-theme="purple"] .project-list-panel,
+:root[data-theme="purple"] .daily-template-panel,
+:root[data-theme="purple"] .role-list-panel,
+:root[data-theme="purple"] .role-detail-panel,
+:root[data-theme="purple"] .people-detail-panel {
+  background:
+    radial-gradient(circle at 94% 0%, rgba(139, 92, 246, 0.09), transparent 30%),
+    linear-gradient(135deg, rgba(23, 20, 38, 0.82), rgba(18, 16, 31, 0.88));
+  border-color: rgba(91, 61, 166, 0.42);
+  color: #f4f0ff;
+  box-shadow:
+    0 28px 82px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(20px) saturate(122%);
+}
+
+:root[data-theme="purple"] .kanban-column,
+:root[data-theme="purple"] .tasklist-column,
+:root[data-theme="purple"] .project-list-column,
+:root[data-theme="purple"] .kanban-card,
+:root[data-theme="purple"] .daily-template-card,
+:root[data-theme="purple"] .task-line,
+:root[data-theme="purple"] .comment-list article,
+:root[data-theme="purple"] .checklist-item-editor,
+:root[data-theme="purple"] .data-table,
+:root[data-theme="purple"] .table-row,
+:root[data-theme="purple"] .project-info-card,
+:root[data-theme="purple"] .member-list article,
+:root[data-theme="purple"] .role-list-item,
+:root[data-theme="purple"] .project-row-select,
+:root[data-theme="purple"] .people-row-select,
+:root[data-theme="purple"] .daily-run-item,
+:root[data-theme="purple"] .avatar-uploader,
+:root[data-theme="purple"] .completion-note-field {
+  background: rgba(23, 20, 38, 0.82);
+  border-color: #2a2440;
+  color: #f4f0ff;
+}
+
+:root[data-theme="purple"] .kanban-card:hover,
+:root[data-theme="purple"] .table-row:hover,
+:root[data-theme="purple"] .role-list-item:hover,
+:root[data-theme="purple"] .project-row-select:hover {
+  background: rgba(31, 26, 51, 0.94);
+  border-color: #3a3158;
+}
+
+:root[data-theme="purple"] input,
+:root[data-theme="purple"] select,
+:root[data-theme="purple"] textarea,
+:root[data-theme="purple"] .search-box,
+:root[data-theme="purple"] .filter-toggle,
+:root[data-theme="purple"] .view-toggle,
+:root[data-theme="purple"] .secondary-action,
+:root[data-theme="purple"] .icon-button,
+:root[data-theme="purple"] .file-button {
+  background: rgba(18, 16, 31, 0.94);
+  border-color: #2a2440;
+  color: #f4f0ff;
+}
+
+:root[data-theme="purple"] input::placeholder,
+:root[data-theme="purple"] textarea::placeholder {
+  color: #8f86a6;
+}
+
+:root[data-theme="purple"] .primary-action,
+:root[data-theme="purple"] .view-toggle button.active,
+:root[data-theme="purple"] .task-tabs button.active,
+:root[data-theme="purple"] .tabs button.active,
+:root[data-theme="purple"] .filter-toggle.active {
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  border-color: #a78bfa;
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.22);
+}
+
+:root[data-theme="purple"] .tasklist-column-head strong,
+:root[data-theme="purple"] .project-task-group-head h3,
+:root[data-theme="purple"] .kanban-card strong,
+:root[data-theme="purple"] .project-row-select strong,
+:root[data-theme="purple"] .people-row-select strong,
+:root[data-theme="purple"] .report-panel h2,
+:root[data-theme="purple"] .drawer h2,
+:root[data-theme="purple"] .drawer h3 {
+  color: #f4f0ff;
+}
+
+:root[data-theme="purple"] .tasklist-column-head small,
+:root[data-theme="purple"] .project-task-group-head span,
+:root[data-theme="purple"] .kanban-card small,
+:root[data-theme="purple"] .project-row-select small,
+:root[data-theme="purple"] .people-row-select small,
+:root[data-theme="purple"] .drawer span,
+:root[data-theme="purple"] .drawer p {
+  color: #c9c1dd;
+}
+
+:root[data-theme="purple"] .status-pill,
+:root[data-theme="purple"] .tasklist-column-head b,
+:root[data-theme="purple"] .project-detail-badges span,
+:root[data-theme="purple"] .more-avatar {
+  background: #241b3d;
+  color: #c4b5fd;
+  border-color: #6d55b8;
+}
+
+:root[data-theme="purple"] .priority-medium,
+:root[data-theme="purple"] .priority-pill {
+  background: #34270f;
+  color: #f6c96f;
+}
+
+:root[data-theme="purple"] .danger,
+:root[data-theme="purple"] .deadline-chip.danger {
+  background: #351817;
+  color: #f28b82;
+}
+
+:root[data-theme="purple"] .deadline-chip.warning,
+:root[data-theme="purple"] .kanban-warning {
+  background: #34270f;
+  color: #f6c96f;
+}
+
+:root[data-theme="purple"] .deadline-chip.success,
+:root[data-theme="purple"] .status-done {
+  background: #13291d;
+  color: #86efac;
+}
+
+:root[data-theme="purple"] .compact-progress-track,
+:root[data-theme="purple"] .progress-track,
+:root[data-theme="purple"] .report-bar-track {
+  background: rgba(201, 193, 221, 0.14);
+}
+
+:root[data-theme="purple"] .project-avatar {
+  color: #f4f0ff;
+  background: linear-gradient(135deg, rgba(59, 42, 104, 0.92), rgba(43, 33, 71, 0.92));
+  border-color: #5b3da6;
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.18);
+}
+
+:root[data-theme="purple"] .drawer-savebar {
+  background: #12101f;
+  border-color: #2a2440;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.18);
+  backdrop-filter: none;
+}
