@@ -3,6 +3,7 @@ services:
     name: checklist-api
     runtime: node
     plan: free
+    region: singapore
     buildCommand: npm ci
     startCommand: npm run start
     healthCheckPath: /health

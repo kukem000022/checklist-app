@@ -5,7 +5,9 @@
 1. Push repo len GitHub.
 2. Vao Render, tao `New` -> `Blueprint`.
 3. Chon repo va file `render.yaml`.
-4. Tao service `checklist-api`.
+4. Tao service `checklist-api` hoac `checklist-api-sg`.
+   File `render.yaml` da dat `region: singapore` de backend gan Supabase Singapore hon.
+   Neu service Render cu da tao o My/Oregon thi can tao service moi; Render khong migrate region cho service cu.
 5. Dien environment variables trong Render:
 
 ```text

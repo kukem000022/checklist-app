@@ -8,6 +8,14 @@
 
 ## Da lam trong checkpoint nay
 
+- Checkpoint toi uu toc do/glass/render:
+  - Cap nhat `render.yaml` them `region: singapore` cho service Render moi.
+  - Cap nhat docs deploy: service Render cu o My/Oregon can tao service moi Singapore, khong nen ky vong doi region truc tiep.
+  - Toi uu frontend load: man hinh dau chi cho `me/profiles/projects/tasks`; `notifications` va `daily-templates` load nen sau, khong chan thao tac chinh.
+  - API `/api/projects` tra them profile manager/thanh vien de UI co avatar project.
+  - Project board header doi icon folder mau vang sang avatar stack; cot Ca nhan dung avatar user dang dang nhap.
+  - Them glass style nhe cho sidebar/topbar/panel/card, giu task board gon de khong roi.
+  - Bo gradient/blur den nang o `drawer-savebar`, giu nen solid nhe de scroll drawer muot hon.
 - Checkpoint UI/task dinh ky moi nhat:
   - Doi login sang anh nen forest noi bo va glass-style panel, khong phu thuoc anh remote.
   - Chuyen nut theme thanh icon nho nam gan thong tin user/admin o sidebar.
@@ -78,6 +86,8 @@
 - `frontend/src/assets/login-background.jpg`
 - `backend/src/server.js`
 - `backend/src/reminders.js`
+- `render.yaml`
+- `docs/render-github-pages-deploy.md`
 - `supabase/schema.sql`
 - `supabase/run_this_fix_tasklist_encoding.sql`
 - `supabase/run_this_update_recurring_monthly.sql`
@@ -199,6 +209,11 @@
   - `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
   - `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
   - `npm.cmd run build` pass.
+- Sau checkpoint toi uu toc do/glass/render:
+  - `npm.cmd run lint` pass.
+  - `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
+  - `npm.cmd run build` pass.
 
 ## Loi con lai / viec chua xong
 
@@ -206,6 +221,8 @@
 - Chua QA UI bang trinh duyet that trong moi truong nay vi khong co browser-control tool kha dung trong turn nay.
 - Chua QA deployed app bang tai khoan `duydy@kootoro.com` vi sandbox chan network ra GitHub Pages/Render.
 - Can chay SQL `supabase/run_this_update_recurring_monthly.sql` tren Supabase truoc khi dung task dinh ky thang o moi truong da co database cu.
+- Render service hien tai o My/Oregon khong tu doi sang Singapore sau khi sua `render.yaml`; can tao service moi tu Blueprint hoac Web Service moi voi region Singapore, copy env vars, test `/health`, roi doi `VITE_API_URL`.
+- Chua chuyen CRUD task sang Supabase direct; viec nay can audit/si chat RLS truoc de tranh lo data.
 - Cac luong da QA tinh/code review:
   - Dashboard / Reports voi task members.
   - Nhan su / role / project members.

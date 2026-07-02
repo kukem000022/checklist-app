@@ -689,7 +689,7 @@ const boardColumns = [
   { id: "cancelled", title: "Đã hủy", hint: "Không tiếp tục" },
 ];
 
-function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, openModal }) {
+function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, openModal, profile }) {
   const [tab, setTab] = useState("all");
   const [query, setQuery] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -789,7 +789,7 @@ function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, o
           </div>
 
           {viewMode === "board" ? (
-            <ProjectGroupedTaskBoards groups={groups} openTask={openTask} />
+            <ProjectGroupedTaskBoards groups={groups} openTask={openTask} profile={profile} />
           ) : (
             <ProjectGroupedTaskList groups={groups} openTask={openTask} />
           )}
@@ -878,7 +878,7 @@ function Filters({ filters, setFilters, projects, profiles, deadline, setDeadlin
   );
 }
 
-function ProjectGroupedTaskBoards({ groups, openTask }) {
+function ProjectGroupedTaskBoards({ groups, openTask, profile }) {
   if (!groups.length) {
     return (
       <div className="empty-state task-empty">
@@ -903,11 +903,17 @@ function ProjectGroupedTaskBoards({ groups, openTask }) {
       <div className="tasklist-board">
         {groups.map((group) => {
           const urgentCount = group.tasks.filter((task) => isOverdue(task) || isDueSoon(task)).length;
+          const headerProfiles = projectHeaderProfiles(group, profile);
           return (
             <section key={group.id} className="tasklist-column project-column" style={{ "--project-accent": projectAccent(group.id) }}>
               <header className="tasklist-column-head">
                 <div className="project-column-title">
-                  <span className="project-column-icon"><FolderKanban size={15} /></span>
+                  <span className="project-column-avatars">
+                    {headerProfiles.slice(0, 3).map((item) => (
+                      <AvatarChip key={item.id || item.email || item.full_name} profile={item} className="project-header-avatar" />
+                    ))}
+                    {!headerProfiles.length && <FolderKanban size={15} />}
+                  </span>
                   <span>
                     <strong>{group.title}</strong>
                     <small>{group.project ? "Dự án" : "Cá nhân"}</small>
@@ -928,6 +934,27 @@ function ProjectGroupedTaskBoards({ groups, openTask }) {
       </div>
     </section>
   );
+}
+
+function projectHeaderProfiles(group, profile) {
+  if (!group.project) return profile ? [profile] : [];
+
+  const members = [];
+  if (group.project.manager) members.push(group.project.manager);
+  for (const member of group.project.project_members || []) {
+    const memberProfile = member.profiles;
+    if (memberProfile?.id && !members.some((item) => item.id === memberProfile.id)) {
+      members.push(memberProfile);
+    }
+  }
+  if (!members.length) {
+    for (const task of group.tasks || []) {
+      if (task.assignee?.id && !members.some((item) => item.id === task.assignee.id)) {
+        members.push(task.assignee);
+      }
+    }
+  }
+  return members;
 }
 
 function projectAccent(id) {
@@ -2818,18 +2845,24 @@ function AppShell() {
         api("/api/projects"),
         api(`/api/tasks${params.toString() ? `?${params}` : ""}`),
       ]);
-      const notificationRows = await api("/api/notifications").catch(() => []);
-      const dailyTemplateRows = await api("/api/daily-templates").catch(() => []);
       setProfile(me.profile);
       setProfiles(profileRows);
       setRoles(roleRows);
       setProjects(projectRows);
       setTasks(taskRows);
-      setNotifications(notificationRows);
-      setDailyTemplates(dailyTemplateRows);
+      setLoading(false);
+
+      Promise.all([
+        api("/api/notifications").catch(() => []),
+        api("/api/daily-templates").catch(() => []),
+      ]).then(([notificationRows, dailyTemplateRows]) => {
+        setNotifications(notificationRows);
+        setDailyTemplates(dailyTemplateRows);
+      }).catch(() => {
+        // Secondary data should not block the first usable screen.
+      });
     } catch (currentError) {
       setError(currentError.message);
-    } finally {
       setLoading(false);
     }
   }, [filters]);
@@ -2936,7 +2969,7 @@ function AppShell() {
       return <ReportsPage tasks={tasks} projects={projects} profiles={profiles} notifications={notifications} />;
     }
     if (activePage === "tasks") {
-      return <TasksPage tasks={tasks} projects={projects} profiles={profiles} filters={filters} setFilters={setFilters} openTask={openTask} openModal={setModal} />;
+      return <TasksPage tasks={tasks} projects={projects} profiles={profiles} filters={filters} setFilters={setFilters} openTask={openTask} openModal={setModal} profile={profile} />;
     }
     if (activePage === "people") {
       return <PeoplePage profiles={profiles} roles={roles} openModal={setModal} updateUser={updateUser} />;

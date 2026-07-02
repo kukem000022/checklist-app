@@ -482,7 +482,7 @@ app.get("/api/projects", async (req, res, next) => {
   try {
     const { data, error } = await req.db
       .from("projects")
-      .select("*, project_members(user_id, role_in_project)")
+      .select("*, manager:profiles!projects_manager_id_fkey(id, full_name, email, avatar_url, avatar_path), project_members(user_id, role_in_project, profiles(id, full_name, email, avatar_url, avatar_path))")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
