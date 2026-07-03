@@ -4357,3 +4357,234 @@ body {
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.18);
   backdrop-filter: none;
 }
+
+/* Purple glass repair: remove light surfaces from dense app views */
+:root[data-theme="purple"] .page-panel,
+:root[data-theme="purple"] .shell-card,
+:root[data-theme="purple"] .shell-core,
+:root[data-theme="purple"] .report-hero .shell-core,
+:root[data-theme="purple"] .report-panel .shell-core,
+:root[data-theme="purple"] .project-task-group,
+:root[data-theme="purple"] .project-list-group,
+:root[data-theme="purple"] .project-readonly-board,
+:root[data-theme="purple"] .project-members-shell,
+:root[data-theme="purple"] .role-checkbox-panel,
+:root[data-theme="purple"] .permission-picker,
+:root[data-theme="purple"] .daily-template-form,
+:root[data-theme="purple"] .daily-template-list,
+:root[data-theme="purple"] .daily-run-report {
+  background:
+    linear-gradient(135deg, rgba(31, 26, 51, 0.78), rgba(13, 11, 22, 0.92)),
+    radial-gradient(circle at 90% 8%, rgba(139, 92, 246, 0.13), transparent 34%);
+  border-color: rgba(139, 92, 246, 0.34);
+  color: #f4f0ff;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+
+:root[data-theme="purple"] .trello-single-board,
+:root[data-theme="purple"] .tasklist-board,
+:root[data-theme="purple"] .project-task-group-list,
+:root[data-theme="purple"] .project-list-task-view,
+:root[data-theme="purple"] .project-status-board,
+:root[data-theme="purple"] .project-kanban {
+  background:
+    linear-gradient(180deg, rgba(13, 11, 22, 0.72), rgba(10, 9, 18, 0.94)),
+    radial-gradient(circle at 16% 0%, rgba(139, 92, 246, 0.09), transparent 32%);
+  border-color: rgba(91, 61, 166, 0.3);
+}
+
+:root[data-theme="purple"] .project-task-group-head,
+:root[data-theme="purple"] .project-list-group-head,
+:root[data-theme="purple"] .tasklist-column-head,
+:root[data-theme="purple"] .project-list-head,
+:root[data-theme="purple"] .compact-section-head,
+:root[data-theme="purple"] .section-head {
+  background:
+    linear-gradient(135deg, rgba(31, 26, 51, 0.88), rgba(18, 16, 31, 0.78));
+  border-color: rgba(91, 61, 166, 0.34);
+}
+
+:root[data-theme="purple"] .data-table,
+:root[data-theme="purple"] .people-directory-table,
+:root[data-theme="purple"] .project-directory-table,
+:root[data-theme="purple"] .people-table,
+:root[data-theme="purple"] .project-table,
+:root[data-theme="purple"] .permission-table,
+:root[data-theme="purple"] .notification-table {
+  background: rgba(13, 11, 22, 0.76);
+  border-color: rgba(91, 61, 166, 0.34);
+  overflow: hidden;
+}
+
+:root[data-theme="purple"] .data-table .table-head,
+:root[data-theme="purple"] .people-directory-table .table-head,
+:root[data-theme="purple"] .project-directory-table .table-head,
+:root[data-theme="purple"] .people-table .table-head,
+:root[data-theme="purple"] .project-table .table-head,
+:root[data-theme="purple"] .permission-table .table-head,
+:root[data-theme="purple"] .notification-table .table-head,
+:root[data-theme="purple"] .premium-task-table .table-head,
+:root[data-theme="purple"] .task-table .table-head {
+  background: linear-gradient(135deg, rgba(43, 33, 71, 0.92), rgba(23, 20, 38, 0.92));
+  color: #e9ddff;
+  border-color: rgba(139, 92, 246, 0.34);
+}
+
+:root[data-theme="purple"] .data-table .table-head span,
+:root[data-theme="purple"] .table-head span {
+  color: #e9ddff;
+}
+
+:root[data-theme="purple"] .data-table .table-row,
+:root[data-theme="purple"] .people-directory-table .table-row,
+:root[data-theme="purple"] .project-directory-table .table-row,
+:root[data-theme="purple"] .project-row-select,
+:root[data-theme="purple"] .people-row-select,
+:root[data-theme="purple"] .role-list-item,
+:root[data-theme="purple"] .report-bar,
+:root[data-theme="purple"] .daily-run-item,
+:root[data-theme="purple"] .project-member-list article,
+:root[data-theme="purple"] .member-list article,
+:root[data-theme="purple"] .role-check-row,
+:root[data-theme="purple"] .permission-picker label,
+:root[data-theme="purple"] .role-detail-permissions label,
+:root[data-theme="purple"] .role-checkbox-grid label {
+  background:
+    linear-gradient(135deg, rgba(23, 20, 38, 0.88), rgba(13, 11, 22, 0.76));
+  color: #f4f0ff;
+  border-color: rgba(91, 61, 166, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+:root[data-theme="purple"] .data-table .table-row:hover,
+:root[data-theme="purple"] .project-row-select:hover,
+:root[data-theme="purple"] .people-row-select:hover,
+:root[data-theme="purple"] .role-list-item:hover,
+:root[data-theme="purple"] .role-check-row:hover,
+:root[data-theme="purple"] .permission-picker label:hover {
+  background: linear-gradient(135deg, rgba(43, 33, 71, 0.94), rgba(31, 26, 51, 0.86));
+  border-color: rgba(167, 139, 250, 0.42);
+}
+
+:root[data-theme="purple"] .project-row-select.selected,
+:root[data-theme="purple"] .people-row-select.selected,
+:root[data-theme="purple"] .role-list-item.selected {
+  background:
+    linear-gradient(135deg, rgba(67, 44, 122, 0.88), rgba(31, 26, 51, 0.92));
+  border-color: rgba(167, 139, 250, 0.64);
+  box-shadow:
+    0 0 0 1px rgba(167, 139, 250, 0.22),
+    0 22px 54px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme="purple"] .empty-state,
+:root[data-theme="purple"] .task-empty,
+:root[data-theme="purple"] .kanban-empty,
+:root[data-theme="purple"] .project-card,
+:root[data-theme="purple"] .role-card,
+:root[data-theme="purple"] .daily-template-card,
+:root[data-theme="purple"] .project-info-card,
+:root[data-theme="purple"] .kanban-card {
+  background:
+    linear-gradient(135deg, rgba(23, 20, 38, 0.9), rgba(13, 11, 22, 0.78));
+  color: #f4f0ff;
+  border-color: rgba(91, 61, 166, 0.34);
+}
+
+:root[data-theme="purple"] .stat-card {
+  background:
+    linear-gradient(135deg, rgba(23, 20, 38, 0.92), rgba(13, 11, 22, 0.82)),
+    radial-gradient(circle at 100% 0%, rgba(167, 139, 250, 0.12), transparent 32%);
+  color: #f4f0ff;
+  border-color: rgba(91, 61, 166, 0.34);
+}
+
+:root[data-theme="purple"] .stat-card.warning {
+  background:
+    linear-gradient(135deg, rgba(59, 43, 17, 0.78), rgba(23, 20, 38, 0.9));
+}
+
+:root[data-theme="purple"] .stat-card.danger {
+  background:
+    linear-gradient(135deg, rgba(67, 24, 24, 0.78), rgba(23, 20, 38, 0.9));
+}
+
+:root[data-theme="purple"] .stat-card.success {
+  background:
+    linear-gradient(135deg, rgba(22, 58, 36, 0.78), rgba(23, 20, 38, 0.9));
+}
+
+:root[data-theme="purple"] .report-hero h2,
+:root[data-theme="purple"] .report-panel h2,
+:root[data-theme="purple"] .report-panel h3,
+:root[data-theme="purple"] .project-task-group-head h3,
+:root[data-theme="purple"] .project-list-group-head strong,
+:root[data-theme="purple"] .section-head h2,
+:root[data-theme="purple"] .compact-section-head h2,
+:root[data-theme="purple"] .table-row strong,
+:root[data-theme="purple"] .role-check-row strong,
+:root[data-theme="purple"] .role-check-row span,
+:root[data-theme="purple"] .permission-picker label span,
+:root[data-theme="purple"] .report-bar strong,
+:root[data-theme="purple"] .daily-run-item strong,
+:root[data-theme="purple"] .project-info-card strong,
+:root[data-theme="purple"] .project-info-card b {
+  color: #f4f0ff;
+}
+
+:root[data-theme="purple"] .report-hero p,
+:root[data-theme="purple"] .report-panel p,
+:root[data-theme="purple"] .section-head p,
+:root[data-theme="purple"] .compact-section-head p,
+:root[data-theme="purple"] .table-row small,
+:root[data-theme="purple"] .role-check-row small,
+:root[data-theme="purple"] .report-bar span,
+:root[data-theme="purple"] .daily-run-item span,
+:root[data-theme="purple"] .project-info-card p,
+:root[data-theme="purple"] .empty-state span,
+:root[data-theme="purple"] .empty-state p {
+  color: #c9c1dd;
+}
+
+:root[data-theme="purple"] .report-bar-track,
+:root[data-theme="purple"] .progress-track,
+:root[data-theme="purple"] .compact-progress-track {
+  background: rgba(201, 193, 221, 0.14);
+}
+
+:root[data-theme="purple"] input[type="checkbox"] {
+  accent-color: #8b5cf6;
+}
+
+:root[data-theme="purple"] .role-chip,
+:root[data-theme="purple"] .role-chip-row b,
+:root[data-theme="purple"] .role-list-item span,
+:root[data-theme="purple"] .role-list-item b,
+:root[data-theme="purple"] .role-list-item em,
+:root[data-theme="purple"] .project-detail-badges b,
+:root[data-theme="purple"] .project-task-group-head > span,
+:root[data-theme="purple"] .project-list-group-head > span,
+:root[data-theme="purple"] .tasklist-column-head b {
+  background: rgba(139, 92, 246, 0.22);
+  color: #e9ddff;
+  border-color: rgba(167, 139, 250, 0.36);
+}
+
+:root[data-theme="purple"] .search-box,
+:root[data-theme="purple"] .search-box input,
+:root[data-theme="purple"] .filter-row,
+:root[data-theme="purple"] .task-tabs,
+:root[data-theme="purple"] .view-toggle {
+  background: rgba(13, 11, 22, 0.72);
+  border-color: rgba(91, 61, 166, 0.34);
+  color: #f4f0ff;
+}
+
+:root[data-theme="purple"] .view-toggle button,
+:root[data-theme="purple"] .task-tabs button {
+  color: #c9c1dd;
+}

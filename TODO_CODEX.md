@@ -8,6 +8,11 @@
 
 ## Da lam trong checkpoint nay
 
+- Checkpoint purple glass UI repair:
+  - Dung `high-end-visual-design` de dinh huong lai surface theo kieu glass-dark/purple, khong dung nen trang cho cac khung quan tri.
+  - Them lop CSS override cuoi `frontend/src/styles.css` cho theme `purple`.
+  - Fix cac vung con trang o Du an, Task cua toi, Nhan su, Vai tro, Bao cao: table head, empty state, report hero, report cards, permission rows, role/person/project rows, board container.
+  - Giu performance: khong them backdrop blur vao cac khung cuon lon, chi dung nen trong suot, gradient nhe, border/inset highlight.
 - Checkpoint project avatar / inactive / Telegram / theme:
   - Them avatar rieng cho du an, hien avatar du an trong cot `Task cua toi`; cot ca nhan fallback avatar user dang nhap.
   - Them chinh sua avatar URL, Telegram group ID va trang thai du an trong chi tiet du an.
@@ -111,6 +116,8 @@
 
 ## Kiem tra da chay
 
+- Sau checkpoint purple glass UI repair:
+  - `npm.cmd run build` pass.
 - Sau checkpoint project avatar / inactive / Telegram / theme:
   - `node --check backend\src\server.js` pass.
   - `node --check backend\src\reminders.js` pass.
