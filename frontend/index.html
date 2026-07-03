@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Checklist MVP</title>
+    <script>
+      (() => {
+        try {
+          const theme = localStorage.getItem("checklist-theme") || "dark";
+          const backgrounds = {
+            dark: "#07110e",
+            purple: "#0d0b16",
+            light: "#f7faf8",
+          };
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.background = backgrounds[theme] || backgrounds.dark;
+        } catch {
+          document.documentElement.dataset.theme = "dark";
+          document.documentElement.style.background = "#07110e";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

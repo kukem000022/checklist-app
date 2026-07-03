@@ -137,6 +137,9 @@ function telegramMention(profile) {
   if (/^-?\d+$/.test(chatId)) {
     return `<a href="tg://user?id=${chatId}">${name}</a>`;
   }
+  if (/^@?[a-zA-Z0-9_]{5,32}$/.test(chatId)) {
+    return escapeTelegramHtml(chatId.startsWith("@") ? chatId : `@${chatId}`);
+  }
   return name;
 }
 

@@ -238,6 +238,20 @@
   - `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
   - `npm.cmd run build --workspace frontend -- --base=/checklist-app/` pass.
   - `npm.cmd run build` pass.
+- Sau checkpoint UI task tabs / drawer / Telegram mention:
+  - Bo cum thong ke tren dau trang `Task cua toi` vi tab ben duoi da du thong tin.
+  - Sua logic tab task: `Tat ca` chi hien task chua ket thuc, khong gom `Hoan thanh` va `Da huy`; them tab `Chua bat dau` va `Sap het han`.
+  - `Sap het han` la bo loc deadline dong, khong tinh nhu status luu DB de tranh dup task.
+  - Sua form tao task: `Bat dau` song song `Deadline`, dua `Uu tien` xuong duoi cung.
+  - Them nut `Dong` o thanh duoi drawer chi tiet task, bo nen/khung nang quanh nut `Luu thay doi`.
+  - Sua Telegram mention: ho tro `@username` va mention an bang numeric Telegram user ID.
+  - Sua encoding tieng Viet trong `backend/src/reminders.js` cho thong bao nhac viec/qua han.
+  - Them quyen `manage_project_recurring_tasks` va `manage_own_recurring_tasks` vao UI role, schema, va SQL update.
+  - Them SQL `supabase/run_this_update_recurring_permissions.sql` de cap nhat role/RLS task dinh ky tren Supabase hien huu.
+  - Da chay `node --check backend\src\server.js` pass.
+  - Da chay `node --check backend\src\reminders.js` pass.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build` pass.
 
 ## Loi con lai / viec chua xong
 
@@ -246,6 +260,7 @@
 - Chua QA deployed app bang tai khoan `duydy@kootoro.com` vi sandbox chan network ra GitHub Pages/Render.
 - Can chay SQL `supabase/run_this_update_recurring_monthly.sql` tren Supabase truoc khi dung task dinh ky thang o moi truong da co database cu.
 - Can chay SQL `supabase/run_this_update_project_avatar_inactive_review_cleanup.sql` tren Supabase de them avatar du an, inactive project, bo `review`, va sua default ID checklist.
+- Can chay SQL `supabase/run_this_update_recurring_permissions.sql` tren Supabase de them quyen task dinh ky va RLS cho nhan su tao/sua mau dinh ky hop le.
 - Render service hien tai o My/Oregon khong tu doi sang Singapore sau khi sua `render.yaml`; can tao service moi tu Blueprint hoac Web Service moi voi region Singapore, copy env vars, test `/health`, roi doi `VITE_API_URL`.
 - Chua chuyen CRUD task sang Supabase direct; viec nay can audit/si chat RLS truoc de tranh lo data.
 - Cac luong da QA tinh/code review:

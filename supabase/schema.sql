@@ -289,6 +289,8 @@ values
     'manage_people',
     'manage_roles',
     'manage_telegram',
+    'manage_project_recurring_tasks',
+    'manage_own_recurring_tasks',
     'view_reports',
     'approve_tasks'
   ], true),
@@ -297,12 +299,14 @@ values
     'manage_projects',
     'manage_project_members',
     'assign_tasks',
+    'manage_project_recurring_tasks',
     'view_reports',
     'approve_tasks'
   ], true),
   ('staff', 'Nhan su', 'Xu ly task duoc giao va task ca nhan', array[
     'create_personal_tasks',
     'update_own_tasks',
+    'manage_own_recurring_tasks',
     'manage_own_telegram'
   ], true)
 on conflict (id) do update
@@ -641,6 +645,11 @@ for select using (
   public.is_admin()
   or assignee_id = auth.uid()
   or public.is_manager_for_project(project_id)
+  or exists (
+    select 1 from public.project_members
+    where project_members.project_id = daily_task_templates.project_id
+      and project_members.user_id = auth.uid()
+  )
 );
 
 drop policy if exists "daily_templates_write_scope" on public.daily_task_templates;
@@ -648,10 +657,22 @@ create policy "daily_templates_write_scope" on public.daily_task_templates
 for all using (
   public.is_admin()
   or public.is_manager_for_project(project_id)
+  or assignee_id = auth.uid()
 )
 with check (
   public.is_admin()
   or public.is_manager_for_project(project_id)
+  or (
+    assignee_id = auth.uid()
+    and (
+      project_id is null
+      or exists (
+        select 1 from public.project_members
+        where project_members.project_id = daily_task_templates.project_id
+          and project_members.user_id = auth.uid()
+      )
+    )
+  )
 );
 
 drop policy if exists "daily_instances_select_scope" on public.daily_task_instances;

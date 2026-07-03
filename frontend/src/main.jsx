@@ -55,6 +55,8 @@ const permissionCatalog = [
   { id: "view_reports", label: "Xem báo cáo" },
   { id: "manage_telegram", label: "Cấu hình Telegram" },
   { id: "manage_own_telegram", label: "Cấu hình Telegram cá nhân" },
+  { id: "manage_project_recurring_tasks", label: "Quản lý task định kỳ dự án" },
+  { id: "manage_own_recurring_tasks", label: "Tạo/sửa task định kỳ cá nhân" },
   { id: "manage_people", label: "Tạo/khóa tài khoản" },
   { id: "manage_roles", label: "Quản lý vai trò và quyền" },
 ];
@@ -727,7 +729,7 @@ function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, o
   const [viewMode, setViewMode] = useState("board");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const searchedTasks = tasks.filter((task) => {
+  const baseFilteredTasks = tasks.filter((task) => {
     const text = [
       task.title,
       task.description,
@@ -739,41 +741,44 @@ function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, o
 
     if (query && !text.includes(query.toLowerCase())) return false;
     if (!deadlineFilterMatch(task, deadline)) return false;
-    if (tab === "overdue" && !isOverdue(task)) return false;
-    if (tab === "doing" && task.status !== "doing") return false;
-    if (tab === "done" && task.status !== "done") return false;
-    if (tab === "cancelled" && task.status !== "cancelled") return false;
+    return true;
+  });
+
+  const searchedTasks = baseFilteredTasks.filter((task) => {
+    if (tab === "all") return !["done", "cancelled"].includes(task.status);
+    if (tab === "todo") return task.status === "todo";
+    if (tab === "dueSoon") return isDueSoon(task);
+    if (tab === "overdue") return isOverdue(task);
+    if (tab === "doing") return task.status === "doing";
+    if (tab === "done") return task.status === "done";
+    if (tab === "cancelled") return task.status === "cancelled";
     return true;
   });
 
   const stats = useMemo(() => ({
-    total: tasks.length,
+    open: tasks.filter((task) => !["done", "cancelled"].includes(task.status)).length,
+    todo: tasks.filter((task) => task.status === "todo").length,
     doing: tasks.filter((task) => task.status === "doing").length,
     dueSoon: tasks.filter(isDueSoon).length,
     overdue: tasks.filter(isOverdue).length,
     done: tasks.filter((task) => task.status === "done").length,
+    cancelled: tasks.filter((task) => task.status === "cancelled").length,
   }), [tasks]);
 
   const tabItems = [
-    ["all", "Tất cả", tasks.length],
+    ["all", "Tất cả", stats.open],
+    ["todo", "Chưa bắt đầu", stats.todo],
+    ["dueSoon", "Sắp hết hạn", stats.dueSoon],
     ["overdue", "Quá hạn", stats.overdue],
     ["doing", "Đang làm", stats.doing],
     ["done", "Hoàn thành", stats.done],
-    ["cancelled", "Đã hủy", tasks.filter((task) => task.status === "cancelled").length],
+    ["cancelled", "Đã hủy", stats.cancelled],
   ];
 
   const groups = groupTasksByProject(searchedTasks, projects);
 
   return (
     <section className="task-workspace compact-workspace">
-      <div className="task-stats-grid compact-stats">
-        <TaskMetric label="Tổng task" value={stats.total} tone="neutral" />
-        <TaskMetric label="Đang làm" value={stats.doing} tone="active" />
-        <TaskMetric label="Sắp hết hạn" value={stats.dueSoon} tone="warning" />
-        <TaskMetric label="Quá hạn" value={stats.overdue} tone="danger" />
-        <TaskMetric label="Hoàn thành" value={stats.done} tone="success" />
-      </div>
-
       <div className="task-board shell-card compact-task-board">
         <div className="shell-core">
           <div className="task-board-head compact-board-head">
@@ -2597,10 +2602,16 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
       <div className="drawer-savebar">
         {saveState === "saved" && <span className="save-state-note success">Đã lưu thành công.</span>}
         {saveState === "error" && message && <span className="save-state-note error">{message}</span>}
-        <button className={`primary-action ${saveState === "saved" ? "save-success" : ""}`} type="button" disabled={!hasChanges || saving} onClick={saveAll}>
-          {saving ? <LoaderCircle size={17} className="spin-icon" /> : <Check size={17} />}
-          {saving ? "Đang lưu..." : saveState === "saved" ? "Đã lưu" : "Lưu thay đổi"}
-        </button>
+        <div className="drawer-save-actions">
+          <button className="secondary-action drawer-close-action" type="button" onClick={onClose}>
+            <X size={16} />
+            Đóng
+          </button>
+          <button className={`primary-action ${saveState === "saved" ? "save-success" : ""}`} type="button" disabled={!hasChanges || saving} onClick={saveAll}>
+            {saving ? <LoaderCircle size={17} className="spin-icon" /> : <Check size={17} />}
+            {saving ? "Đang lưu..." : saveState === "saved" ? "Đã lưu" : "Lưu thay đổi"}
+          </button>
+        </div>
       </div>
     </aside>
   );
@@ -2673,6 +2684,8 @@ function CreateTaskModal({ projects, profiles, profile, onCreate, onClose }) {
         <label className="wide-field">Tên task<input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required /></label>
         <label>Dự án<select value={form.project_id} onChange={(event) => updateProject(event.target.value)}><option value="">Cá nhân</option>{creatableProjects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
         <label>Phụ trách<select value={form.assignee_id} onChange={(event) => setForm({ ...form, assignee_id: event.target.value })}><option value="">{selectedProject ? "Chọn người phụ trách" : "Tôi phụ trách"}</option>{assignableProfiles.map((item) => <option key={item.id} value={item.id}>{personName(item)}</option>)}</select></label>
+        <label>Bắt đầu<input type="datetime-local" value={form.start_time} onChange={(event) => setForm({ ...form, start_time: event.target.value })} /></label>
+        <label>Deadline<input type="datetime-local" value={form.due_time} onChange={(event) => setForm({ ...form, due_time: event.target.value })} /></label>
         {selectedProject && (
           <div className="wide-field role-checkbox-panel compact-role-picker">
             <strong>Thành viên xử lý</strong>
@@ -2693,11 +2706,9 @@ function CreateTaskModal({ projects, profiles, profile, onCreate, onClose }) {
             {!assignableProfiles.length && <p className="empty-state">Dự án này chưa có thành viên.</p>}
           </div>
         )}
-        <label>Ưu tiên<select value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })}><option value="high">Cao</option><option value="medium">Trung bình</option><option value="low">Thấp</option></select></label>
-        <label>Bắt đầu<input type="datetime-local" value={form.start_time} onChange={(event) => setForm({ ...form, start_time: event.target.value })} /></label>
-        <label>Deadline<input type="datetime-local" value={form.due_time} onChange={(event) => setForm({ ...form, due_time: event.target.value })} /></label>
         <label className="wide-field">Mô tả<textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
         <label className="wide-field">Checklist, mỗi dòng là một việc nhỏ<textarea value={form.checklist} onChange={(event) => setForm({ ...form, checklist: event.target.value })} /></label>
+        <label className="wide-field">Ưu tiên<select value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })}><option value="high">Cao</option><option value="medium">Trung bình</option><option value="low">Thấp</option></select></label>
         {error && <p className="form-error wide-field">{error}</p>}
 
         <button className="primary-action" disabled={creating} aria-busy={creating}>

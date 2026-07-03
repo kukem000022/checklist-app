@@ -1818,15 +1818,27 @@ textarea {
   position: sticky;
   bottom: 0;
   z-index: 2;
-  margin: 16px -18px -18px;
-  border-top: 1px solid rgba(74, 99, 91, 0.12);
-  background: rgba(255, 255, 255, 0.96);
+  margin: 14px 0 0;
+  border-top: 0;
+  background: transparent;
   backdrop-filter: none;
-  padding: 12px 18px;
+  padding: 0;
+  box-shadow: none;
 }
 
-.drawer-savebar .primary-action {
+.drawer-save-actions {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.32fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.drawer-savebar .primary-action,
+.drawer-savebar .secondary-action {
   width: 100%;
+}
+
+.drawer-close-action {
+  background: rgba(255, 255, 255, 0.68);
 }
 
 .notifications-layout {
@@ -4587,4 +4599,32 @@ body {
 :root[data-theme="purple"] .view-toggle button,
 :root[data-theme="purple"] .task-tabs button {
   color: #c9c1dd;
+}
+
+/* Drawer bottom actions: sticky controls without the heavy wrapper panel. */
+.drawer-savebar,
+:root[data-theme="dark"] .drawer-savebar,
+:root[data-theme="purple"] .drawer-savebar {
+  margin: 14px 0 0;
+  border-top: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 0;
+}
+
+:root[data-theme="dark"] .drawer-close-action {
+  background: rgba(203, 232, 222, 0.08);
+  color: #dff5ec;
+}
+
+:root[data-theme="purple"] .drawer-close-action {
+  background: rgba(255, 255, 255, 0.07);
+  color: #f4f0ff;
+}
+
+@media (max-width: 560px) {
+  .drawer-save-actions {
+    grid-template-columns: 1fr;
+  }
 }
