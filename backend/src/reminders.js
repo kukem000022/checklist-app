@@ -347,10 +347,27 @@ async function ensureDailyTasks() {
   return result;
 }
 
+async function promoteStartedTasks(now) {
+  const { data, error } = await admin
+    .from("tasks")
+    .update({ status: "doing", updated_at: now.toISOString() })
+    .eq("status", "todo")
+    .not("start_time", "is", null)
+    .lte("start_time", now.toISOString())
+    .select("id");
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.length || 0;
+}
+
 export async function runReminderSweep() {
   const now = new Date();
   const maxDue = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const dailyTasks = await ensureDailyTasks();
+  const promotedStartedTasks = await promoteStartedTasks(now);
 
   const { data: tasks, error } = await admin
     .from("tasks")
@@ -403,7 +420,12 @@ export async function runReminderSweep() {
     }
   }
 
-  return { checked: tasks?.length || 0, createdDailyTasks: dailyTasks.created + dailyTasks.repaired, dailyTasks };
+  return {
+    checked: tasks?.length || 0,
+    createdDailyTasks: dailyTasks.created + dailyTasks.repaired,
+    promotedStartedTasks,
+    dailyTasks,
+  };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

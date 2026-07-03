@@ -17,12 +17,16 @@ import {
   LoaderCircle,
   MessageSquare,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   RefreshCw,
+  Rows3,
   Search,
   Send,
   Settings,
   ShieldCheck,
+  Table2,
   Sun,
   Trash2,
   UsersRound,
@@ -342,16 +346,42 @@ function themeIcon(theme) {
   return theme === "light" ? Moon : Sun;
 }
 
-function Sidebar({ activePage, setActivePage, profile, theme, toggleTheme }) {
+function getInitialSidebarCollapsed() {
+  try {
+    const stored = localStorage.getItem("checklist-sidebar-collapsed");
+    if (stored === null) return true;
+    return stored === "true";
+  } catch {
+    return true;
+  }
+}
+
+function persistSidebarCollapsed(collapsed) {
+  try {
+    localStorage.setItem("checklist-sidebar-collapsed", String(collapsed));
+  } catch {
+    // Sidebar persistence is optional.
+  }
+}
+
+function Sidebar({ activePage, setActivePage, profile, theme, toggleTheme, collapsed, toggleCollapsed }) {
   const allowedItems = navItems.filter((item) => !item.adminOnly || profile?.role === "admin");
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
       <div className="sidebar-brand">
         <ListChecks size={25} />
-        <div>
+        <div className="sidebar-brand-copy">
           <strong>Checklist</strong>
           <span>Internal Ops</span>
         </div>
+        <button
+          className="icon-button sidebar-collapse-button"
+          type="button"
+          onClick={toggleCollapsed}
+          title={collapsed ? "Mở rộng menu" : "Thu nhỏ menu"}
+        >
+          {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+        </button>
       </div>
       <nav className="sidebar-nav">
         {allowedItems.map((item) => {
@@ -361,16 +391,17 @@ function Sidebar({ activePage, setActivePage, profile, theme, toggleTheme }) {
               key={item.id}
               className={activePage === item.id ? "active" : ""}
               onClick={() => setActivePage(item.id)}
+              title={item.label}
             >
               <Icon size={18} />
-              {item.label}
+              <span className="sidebar-nav-label">{item.label}</span>
             </button>
           );
         })}
       </nav>
       <div className="sidebar-user">
         {profile?.avatar_url ? <AvatarChip profile={profile} className="sidebar-avatar" /> : <CircleUserRound size={19} />}
-        <div>
+        <div className="sidebar-user-copy">
           <strong>{personName(profile)}</strong>
           <span>{roleLabel(profile?.role)}</span>
         </div>
@@ -776,56 +807,56 @@ function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, o
   ];
 
   const groups = groupTasksByProject(searchedTasks, projects);
+  const taskToolbar = (
+    <div className="board-command-panel">
+      <div className="board-command-top">
+        <Filters
+          filters={filters}
+          setFilters={setFilters}
+          projects={projects}
+          profiles={profiles}
+          deadline={deadline}
+          setDeadline={setDeadline}
+          query={query}
+          setQuery={setQuery}
+          open={filtersOpen}
+          setOpen={setFiltersOpen}
+        />
+        <div className="board-icon-actions">
+          <button className="icon-button board-action-icon" onClick={() => openModal("task")} title="Tạo task">
+            <Plus size={17} />
+          </button>
+          <div className="view-toggle icon-view-toggle" aria-label="Chọn kiểu hiển thị">
+            <button className={viewMode === "board" ? "active" : ""} onClick={() => setViewMode("board")} title="Bảng">
+              <Table2 size={17} />
+            </button>
+            <button className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")} title="Danh sách">
+              <Rows3 size={17} />
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="task-tabs-row compact-tabs-row">
+        <div className="tabs task-tabs compact-filter-tabs">
+          {tabItems.map(([id, label, count]) => (
+            <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
+              {label}
+              <span>{count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <section className="task-workspace compact-workspace">
       <div className="task-board shell-card compact-task-board">
         <div className="shell-core">
-          <div className="task-board-head compact-board-head">
-            <div>
-              <span className="eyebrow">Công việc theo dự án</span>
-              <h3>{searchedTasks.length} task đang hiển thị</h3>
-            </div>
-            <div className="task-board-controls compact-controls">
-              <button className="secondary-action" onClick={() => openModal("task")}>
-                <Plus size={16} />
-                Tạo task
-              </button>
-              <div className="view-toggle">
-                <button className={viewMode === "board" ? "active" : ""} onClick={() => setViewMode("board")}>Bảng</button>
-                <button className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")}>Danh sách</button>
-              </div>
-            </div>
-          </div>
-
-          <Filters
-            filters={filters}
-            setFilters={setFilters}
-            projects={projects}
-            profiles={profiles}
-            deadline={deadline}
-            setDeadline={setDeadline}
-            query={query}
-            setQuery={setQuery}
-            open={filtersOpen}
-            setOpen={setFiltersOpen}
-          />
-
-          <div className="task-tabs-row">
-            <div className="tabs task-tabs">
-              {tabItems.map(([id, label, count]) => (
-                <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
-                  {label}
-                  <span>{count}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {viewMode === "board" ? (
-            <ProjectGroupedTaskBoards groups={groups} openTask={openTask} profile={profile} />
+            <ProjectGroupedTaskBoards groups={groups} openTask={openTask} profile={profile} toolbar={taskToolbar} total={searchedTasks.length} />
           ) : (
-            <ProjectGroupedTaskList groups={groups} openTask={openTask} />
+            <ProjectGroupedTaskList groups={groups} openTask={openTask} toolbar={taskToolbar} total={searchedTasks.length} />
           )}
         </div>
       </div>
@@ -911,28 +942,37 @@ function Filters({ filters, setFilters, projects, profiles, deadline, setDeadlin
   );
 }
 
-function ProjectGroupedTaskBoards({ groups, openTask, profile }) {
+function ProjectGroupedTaskBoards({ groups, openTask, profile, toolbar, total }) {
   if (!groups.length) {
     return (
-      <div className="empty-state task-empty">
-        <ListChecks size={34} />
-        <strong>Chưa có task phù hợp</strong>
-        <span>Thử đổi bộ lọc hoặc tạo task mới để bắt đầu theo dõi công việc.</span>
-      </div>
+      <section className="project-task-group trello-project-board trello-single-board">
+        <header className="project-task-group-head board-main-head">
+          <div>
+            <span className="eyebrow">Bảng công việc</span>
+            <h3>Theo dự án</h3>
+          </div>
+          <span>{total} task</span>
+        </header>
+        {toolbar}
+        <div className="empty-state task-empty">
+          <ListChecks size={34} />
+          <strong>Chưa có task phù hợp</strong>
+          <span>Thử đổi bộ lọc hoặc tạo task mới để bắt đầu theo dõi công việc.</span>
+        </div>
+      </section>
     );
   }
 
-  const total = groups.reduce((sum, group) => sum + group.tasks.length, 0);
-
   return (
     <section className="project-task-group trello-project-board trello-single-board">
-      <header className="project-task-group-head">
+      <header className="project-task-group-head board-main-head">
         <div>
           <span className="eyebrow">Bảng công việc</span>
           <h3>Theo dự án</h3>
         </div>
         <span>{total} task</span>
       </header>
+      {toolbar}
       <div className="tasklist-board">
         {groups.map((group) => {
           const urgentCount = group.tasks.filter((task) => isOverdue(task) || isDueSoon(task)).length;
@@ -1017,19 +1057,38 @@ function taskMemberProfiles(task) {
     .filter(Boolean);
 }
 
-function ProjectGroupedTaskList({ groups, openTask }) {
+function ProjectGroupedTaskList({ groups, openTask, toolbar, total }) {
   if (!groups.length) {
     return (
-      <div className="empty-state task-empty">
-        <ListChecks size={34} />
-        <strong>Chưa có task phù hợp</strong>
-        <span>Thử đổi bộ lọc hoặc tạo task mới để bắt đầu theo dõi công việc.</span>
-      </div>
+      <section className="project-task-group trello-project-board trello-single-board list-mode-board">
+        <header className="project-task-group-head board-main-head">
+          <div>
+            <span className="eyebrow">Bảng công việc</span>
+            <h3>Theo dự án</h3>
+          </div>
+          <span>{total} task</span>
+        </header>
+        {toolbar}
+        <div className="empty-state task-empty">
+          <ListChecks size={34} />
+          <strong>Chưa có task phù hợp</strong>
+          <span>Thử đổi bộ lọc hoặc tạo task mới để bắt đầu theo dõi công việc.</span>
+        </div>
+      </section>
     );
   }
 
   return (
-    <div className="project-list-task-view">
+    <section className="project-task-group trello-project-board trello-single-board list-mode-board">
+      <header className="project-task-group-head board-main-head">
+        <div>
+          <span className="eyebrow">Bảng công việc</span>
+          <h3>Theo dự án</h3>
+        </div>
+        <span>{total} task</span>
+      </header>
+      {toolbar}
+      <div className="project-list-task-view">
       {groups.map((group) => (
         <section key={group.id} className="project-list-group">
           <header className="project-list-group-head">
@@ -1085,7 +1144,8 @@ function ProjectGroupedTaskList({ groups, openTask }) {
           </div>
         </section>
       ))}
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -2851,7 +2911,8 @@ function persistTheme(theme) {
 
 function AppShell() {
   const [theme, setTheme] = useState(getInitialTheme);
-  const [activePage, setActivePage] = useState("overview");
+  const [activePage, setActivePage] = useState("tasks");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialSidebarCollapsed);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [profiles, setProfiles] = useState([]);
@@ -2876,6 +2937,14 @@ function AppShell() {
       if (current === "dark") return "purple";
       if (current === "purple") return "light";
       return "dark";
+    });
+  }
+
+  function toggleSidebarCollapsed() {
+    setSidebarCollapsed((current) => {
+      const next = !current;
+      persistSidebarCollapsed(next);
+      return next;
     });
   }
 
@@ -3034,8 +3103,16 @@ function AppShell() {
   }
 
   return (
-    <main className="app-layout">
-      <Sidebar activePage={activePage} setActivePage={setActivePage} profile={profile} theme={theme} toggleTheme={toggleTheme} />
+    <main className={`app-layout ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      <Sidebar
+        activePage={activePage}
+        setActivePage={setActivePage}
+        profile={profile}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        collapsed={sidebarCollapsed}
+        toggleCollapsed={toggleSidebarCollapsed}
+      />
       <section className="app-main">
         {activePage !== "tasks" && <Topbar activePage={activePage} profile={profile} loading={loading} onRefresh={load} openModal={setModal} theme={theme} toggleTheme={toggleTheme} />}
         {error && <div className="error-banner">{error}</div>}

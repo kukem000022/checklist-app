@@ -252,6 +252,17 @@
   - Da chay `node --check backend\src\reminders.js` pass.
   - Da chay `npm.cmd run lint` pass.
   - Da chay `npm.cmd run build` pass.
+- Sau checkpoint sidebar/board co dinh/auto start:
+  - Mac dinh vao app o tab `Task cua toi` thay vi Dashboard.
+  - Them nut thu gon/mo rong sidebar, mac dinh lan dau la thu gon va luu trang thai vao localStorage.
+  - Bo header `Cong viec theo du an`/so task dung rieng phia tren trong `Task cua toi`.
+  - Dua search, mo rong bo loc, tab trang thai, nut tao task va chuyen che do bang/danh sach vao trong khung bang cong viec.
+  - Doi nut `Tao task/Bang/Danh sach` trong board thanh icon compact.
+  - Sua khung board de co chieu cao co dinh, task/project chi cuon trong khung board thay vi keo ca trang.
+  - Backend reminder sweep tu chuyen task `todo` co `start_time <= now()` sang `doing`.
+  - Da chay `node --check backend\src\reminders.js` pass.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build` pass.
 
 ## Loi con lai / viec chua xong
 
