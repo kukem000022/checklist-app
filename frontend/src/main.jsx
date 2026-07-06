@@ -847,6 +847,14 @@ function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, o
           open={filtersOpen}
           setOpen={setFiltersOpen}
         />
+        <div className="tabs task-tabs compact-filter-tabs">
+          {tabItems.map(([id, label, count]) => (
+            <button key={id} className={`${tab === id ? "active" : ""} tab-${id}`} onClick={() => setTab(id)}>
+              {label}
+              <span>{count}</span>
+            </button>
+          ))}
+        </div>
         <div className="board-icon-actions">
           <button className="icon-button board-action-icon" onClick={() => openModal("task")} title="Tạo task">
             <Plus size={17} />
@@ -859,16 +867,6 @@ function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, o
               <Rows3 size={17} />
             </button>
           </div>
-        </div>
-      </div>
-      <div className="task-tabs-row compact-tabs-row">
-        <div className="tabs task-tabs compact-filter-tabs">
-          {tabItems.map(([id, label, count]) => (
-            <button key={id} className={`${tab === id ? "active" : ""} tab-${id}`} onClick={() => setTab(id)}>
-              {label}
-              <span>{count}</span>
-            </button>
-          ))}
         </div>
       </div>
     </div>

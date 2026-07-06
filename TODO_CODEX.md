@@ -285,6 +285,12 @@
   - Da chay `node --check backend\src\reminders.js` pass.
   - Da chay `npm.cmd run lint` pass.
   - Da chay `npm.cmd run build` pass.
+- Sau checkpoint task board tabs len header:
+  - Dua cum tab loc trang thai vao cung hang tren cua toolbar bang cong viec.
+  - Nen search/filter va cum icon tao task/chuyen view de giam chieu cao toolbar.
+  - Giu nguyen logic loc task hien tai, chi sua layout UI.
+  - Da chay `node --check backend\src\server.js` pass.
+  - Da chay `npm.cmd run build` pass.
 
 ## Loi con lai / viec chua xong
 

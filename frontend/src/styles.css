@@ -1558,7 +1558,7 @@ textarea {
 
 .board-command-panel {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   padding: 8px 14px;
   border-top: 1px solid rgba(74, 99, 91, 0.09);
   border-bottom: 1px solid rgba(74, 99, 91, 0.09);
@@ -1567,9 +1567,9 @@ textarea {
 
 .board-command-top {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) auto;
+  grid-template-columns: minmax(250px, 0.85fr) minmax(420px, 1.25fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .board-icon-actions {
@@ -1594,8 +1594,10 @@ textarea {
 
 .compact-filter-tabs {
   gap: 7px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .compact-filter-tabs button {
@@ -1614,6 +1616,37 @@ textarea {
 .compact-tabs-row {
   padding: 0;
   border-top: 0;
+}
+
+.board-command-top .premium-filters {
+  min-width: 0;
+}
+
+.board-command-top .filter-primary-row {
+  grid-template-columns: minmax(170px, 1fr) auto;
+  gap: 8px;
+}
+
+.board-command-top .filter-search {
+  min-height: 34px;
+}
+
+.board-command-top .filter-toggle {
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.board-command-top .filter-expanded-grid {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(760px, calc(100vw - 64px));
+  padding: 12px;
+  border: 1px solid rgba(120, 170, 154, 0.2);
+  border-radius: 18px;
+  background: rgba(9, 27, 23, 0.96);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
 }
 
 .board-main-head {
@@ -5017,13 +5050,14 @@ body {
 }
 
 .board-command-panel .unified-filters {
+  position: relative;
   border: 0;
   padding: 0;
   background: transparent;
 }
 
 .board-command-panel .filter-primary-row {
-  grid-template-columns: minmax(220px, 360px) auto;
+  grid-template-columns: minmax(190px, 300px) auto;
   justify-content: start;
 }
 
@@ -5035,4 +5069,10 @@ body {
 .board-command-panel .filter-toggle {
   padding: 0 13px;
   font-size: 0.8rem;
+}
+
+.board-command-panel .compact-filter-tabs {
+  align-self: center;
+  justify-self: end;
+  min-width: 0;
 }
