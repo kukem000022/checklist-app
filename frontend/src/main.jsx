@@ -949,7 +949,6 @@ function ProjectGroupedTaskBoards({ groups, openTask, profile, toolbar, total })
         <header className="project-task-group-head board-main-head">
           <div>
             <span className="eyebrow">Bảng công việc</span>
-            <h3>Theo dự án</h3>
           </div>
           <span>{total} task</span>
         </header>
@@ -968,7 +967,6 @@ function ProjectGroupedTaskBoards({ groups, openTask, profile, toolbar, total })
       <header className="project-task-group-head board-main-head">
         <div>
           <span className="eyebrow">Bảng công việc</span>
-          <h3>Theo dự án</h3>
         </div>
         <span>{total} task</span>
       </header>
@@ -1018,25 +1016,27 @@ function TaskKanbanCard({ task, openTask }) {
   const DeadlineIcon = deadline.icon;
   const telegram = telegramState(task);
   const members = taskMemberProfiles(task);
+  const doneCount = (task.task_checklists || []).filter((item) => item.is_done).length;
+  const totalChecklist = (task.task_checklists || []).length;
 
   return (
-    <button className={`kanban-card ${deadline.tone}-card ${task.status === "done" ? "complete-card" : ""} ${isFreshTask(task) ? "fresh-card" : ""}`} onClick={() => openTask(task)}>
+    <button className={`kanban-card priority-accent-${task.priority} ${deadline.tone}-card ${task.status === "done" ? "complete-card" : ""} ${isFreshTask(task) ? "fresh-card" : ""}`} onClick={() => openTask(task)}>
       <span className="card-title-row">
-        <strong>{task.title}</strong>
+        <span className={`priority-dot priority-${task.priority}`} title={`Ưu tiên: ${priorityLabel(task.priority)}`} />
+        <span className="task-card-title">{task.title}</span>
         {isFreshTask(task) && <b className="fresh-pill">Mới</b>}
       </span>
       <span className="card-mini-labels">
-        <b className={`priority-pill priority-${task.priority}`}>{priorityLabel(task.priority)}</b>
         <b className={`telegram-pill ${telegram.tone}`}>{telegram.label}</b>
       </span>
+      {task.due_time && (
       <span className="card-compact-meta">
         <span className={`deadline-chip ${deadline.tone}`}>
           <DeadlineIcon size={13} />
           {formatDate(task.due_time)}
         </span>
-        <span className="mini-progress">{progress}%</span>
       </span>
-      <span className="compact-progress-track"><span style={{ width: `${progress}%` }} /></span>
+      )}
       <span className="card-footer compact-card-footer">
         <span className="avatar-stack">
           <AvatarChip profile={task.assignee} />
@@ -1045,7 +1045,11 @@ function TaskKanbanCard({ task, openTask }) {
           ))}
           {members.length > 3 && <span className="avatar-chip more-avatar">+{members.length - 3}</span>}
         </span>
-        <small>{(task.task_checklists || []).filter((item) => item.is_done).length}/{(task.task_checklists || []).length}</small>
+        <span className="card-check-progress">
+          <span className="checklist-mini-icon"><Check size={10} /></span>
+          <small>{doneCount}/{totalChecklist}</small>
+          <small>{progress}%</small>
+        </span>
       </span>
     </button>
   );
@@ -1064,7 +1068,6 @@ function ProjectGroupedTaskList({ groups, openTask, toolbar, total }) {
         <header className="project-task-group-head board-main-head">
           <div>
             <span className="eyebrow">Bảng công việc</span>
-            <h3>Theo dự án</h3>
           </div>
           <span>{total} task</span>
         </header>
@@ -1083,7 +1086,6 @@ function ProjectGroupedTaskList({ groups, openTask, toolbar, total }) {
       <header className="project-task-group-head board-main-head">
         <div>
           <span className="eyebrow">Bảng công việc</span>
-          <h3>Theo dự án</h3>
         </div>
         <span>{total} task</span>
       </header>

@@ -263,6 +263,13 @@
   - Da chay `node --check backend\src\reminders.js` pass.
   - Da chay `npm.cmd run lint` pass.
   - Da chay `npm.cmd run build` pass.
+- Sau checkpoint compact task card / board toolbar:
+  - Bo chu `Theo du an` trong header board/list tren trang `Task cua toi`.
+  - Thu gon toolbar trong khung bang: search/filter nho hon, icon tao task/chuyen view compact hon, tab trang thai gon hon.
+  - Sua task card: title nhe hon, priority doi thanh cham mau nho, khong co deadline thi khong hien chip deadline, bo thanh progress.
+  - Dua checklist count ve dang icon checkbox + `done/total` + `%` o chan card.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build` pass.
 
 ## Loi con lai / viec chua xong
 
@@ -274,6 +281,7 @@
 - Can chay SQL `supabase/run_this_update_recurring_permissions.sql` tren Supabase de them quyen task dinh ky va RLS cho nhan su tao/sua mau dinh ky hop le.
 - Render service hien tai o My/Oregon khong tu doi sang Singapore sau khi sua `render.yaml`; can tao service moi tu Blueprint hoac Web Service moi voi region Singapore, copy env vars, test `/health`, roi doi `VITE_API_URL`.
 - Chua chuyen CRUD task sang Supabase direct; viec nay can audit/si chat RLS truoc de tranh lo data.
+- Can them rule luu task: sau khi bam `Luu thay doi`, neu tat ca checklist con da duoc tick xong thi tu chuyen task sang `Hoan thanh`.
 - Cac luong da QA tinh/code review:
   - Dashboard / Reports voi task members.
   - Nhan su / role / project members.

@@ -1197,7 +1197,6 @@ textarea {
   justify-content: space-between;
 }
 
-.card-mini-labels .priority-pill,
 .card-mini-labels .telegram-pill,
 .card-compact-meta .deadline-chip {
   font-size: 0.68rem;
@@ -1222,6 +1221,54 @@ textarea {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #1a8a70, #9bd0b2);
+}
+
+.task-card-title {
+  min-width: 0;
+  color: inherit;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.32;
+}
+
+.priority-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  margin-top: 5px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+}
+
+.priority-dot.priority-high {
+  background: #f06d61;
+}
+
+.priority-dot.priority-medium {
+  background: #d5a43c;
+}
+
+.priority-dot.priority-low {
+  background: #67c78d;
+}
+
+.card-check-progress {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  color: #314c44;
+  font-weight: 800;
+}
+
+.checklist-mini-icon {
+  width: 14px;
+  height: 14px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  display: inline-grid;
+  place-items: center;
+  opacity: 0.82;
 }
 
 .card-progress {
@@ -1511,8 +1558,8 @@ textarea {
 
 .board-command-panel {
   display: grid;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 8px 14px;
   border-top: 1px solid rgba(74, 99, 91, 0.09);
   border-bottom: 1px solid rgba(74, 99, 91, 0.09);
   background: rgba(6, 18, 15, 0.18);
@@ -1520,9 +1567,9 @@ textarea {
 
 .board-command-top {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 10px;
+  grid-template-columns: minmax(300px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
 }
 
 .board-icon-actions {
@@ -1532,8 +1579,8 @@ textarea {
 }
 
 .board-action-icon {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
 }
 
 .icon-view-toggle button {
@@ -1552,10 +1599,10 @@ textarea {
 }
 
 .compact-filter-tabs button {
-  min-height: 32px;
-  padding: 6px 10px;
-  gap: 6px;
-  font-size: 0.78rem;
+  min-height: 28px;
+  padding: 5px 9px;
+  gap: 5px;
+  font-size: 0.72rem;
   line-height: 1;
 }
 
@@ -1570,12 +1617,13 @@ textarea {
 }
 
 .board-main-head {
-  padding: 14px 16px;
+  padding: 12px 16px;
 }
 
 .board-main-head h3 {
-  margin: 4px 0 0;
-  font-size: 1.05rem;
+  margin: 0;
+  font-size: 0;
+  line-height: 0;
 }
 
 .project-task-group-list,
@@ -4803,4 +4851,65 @@ body {
   .drawer-save-actions {
     grid-template-columns: 1fr;
   }
+}
+
+/* Compact task-card pass: keep dense board readable after theme overrides. */
+.kanban-card .task-card-title {
+  font-weight: 560;
+}
+
+.kanban-card .card-title-row {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.kanban-card .fresh-pill {
+  margin-left: auto;
+}
+
+.kanban-card .priority-dot.priority-high,
+:root[data-theme="dark"] .kanban-card .priority-dot.priority-high,
+:root[data-theme="purple"] .kanban-card .priority-dot.priority-high {
+  background: #ef6a5d;
+  color: #ef6a5d;
+}
+
+.kanban-card .priority-dot.priority-medium,
+:root[data-theme="dark"] .kanban-card .priority-dot.priority-medium,
+:root[data-theme="purple"] .kanban-card .priority-dot.priority-medium {
+  background: #d6a841;
+  color: #d6a841;
+}
+
+.kanban-card .priority-dot.priority-low,
+:root[data-theme="dark"] .kanban-card .priority-dot.priority-low,
+:root[data-theme="purple"] .kanban-card .priority-dot.priority-low {
+  background: #62c98d;
+  color: #62c98d;
+}
+
+:root[data-theme="dark"] .card-check-progress,
+:root[data-theme="purple"] .card-check-progress {
+  color: #d9f8ef;
+}
+
+.board-command-panel .unified-filters {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.board-command-panel .filter-primary-row {
+  grid-template-columns: minmax(220px, 360px) auto;
+  justify-content: start;
+}
+
+.board-command-panel .search-box,
+.board-command-panel .filter-toggle {
+  min-height: 36px;
+}
+
+.board-command-panel .filter-toggle {
+  padding: 0 13px;
+  font-size: 0.8rem;
 }
