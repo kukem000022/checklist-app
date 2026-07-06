@@ -7,6 +7,7 @@ const reminderWindows = [
   { type: "due_soon_2h", fromMinutes: 90, toMinutes: 120 },
 ];
 const overdueRepeatMinutes = 30;
+const defaultTemplateWeekdays = [1, 2, 3, 4, 5];
 const statusLabels = {
   todo: "Chưa bắt đầu",
   doing: "Đang làm",
@@ -213,9 +214,21 @@ function shiftWeekendToNextWorkday(value) {
   return date.toISOString().slice(0, 10);
 }
 
+function weekdayForDate(value) {
+  const { year, month, day } = parseDateParts(value);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+function templateRunsOnDate(template, currentDate) {
+  const weekdays = Array.isArray(template.weekdays) && template.weekdays.length
+    ? template.weekdays.map(Number)
+    : defaultTemplateWeekdays;
+  return weekdays.includes(weekdayForDate(currentDate));
+}
+
 function scheduledRunDateForTemplate(template, currentDate) {
   if ((template.recurrence_type || "daily") === "daily") {
-    return currentDate;
+    return templateRunsOnDate(template, currentDate) ? currentDate : null;
   }
 
   const { year, month } = parseDateParts(currentDate);

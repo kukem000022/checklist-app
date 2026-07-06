@@ -270,18 +270,37 @@
   - Dua checklist count ve dang icon checkbox + `done/total` + `%` o chan card.
   - Da chay `npm.cmd run lint` pass.
   - Da chay `npm.cmd run build` pass.
+- Sau checkpoint task dinh ky weekday / card cleanup / auto status:
+  - Them lich chay theo ngay trong tuan cho task dinh ky hang ngay, mac dinh T2-T6.
+  - Task dinh ky hang thang van tu day qua ngay lam viec tiep theo neu dinh T7/CN.
+  - Cho phep bam vao mau task dinh ky da tao de sua, danh sach mau hien theo dang row/table gon hon.
+  - Backend API `/api/daily-templates` nhan/luu `weekdays`; reminder sweep chi tao task neu ngay hien tai nam trong lich chay.
+  - Them SQL `supabase/run_this_update_recurring_weekdays.sql` de cap nhat database hien huu.
+  - Tao task moi co `start_time <= now` se tu vao `Dang lam`; backend cung tu bao ve neu frontend gui thieu status.
+  - Khi sua task va start time da toi, neu task dang `Chua bat dau` thi luu se tu doi sang `Dang lam`.
+  - Khi bam `Luu thay doi`, neu tat ca checklist con da tick xong thi hien confirm de chuyen task sang `Hoan thanh`.
+  - Card task: bo chip `Group Telegram`, bo hien thi `%`, khong co deadline thi khong hien chip deadline, title nhe hon, checklist con hien icon + `done/total`.
+  - Tab `Hoan thanh` chuyen tone xanh la, tab `Da huy` chuyen tone do.
+  - Da chay `node --check backend\src\server.js` pass.
+  - Da chay `node --check backend\src\reminders.js` pass.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build` pass.
 
 ## Loi con lai / viec chua xong
 
 - Chua QA API authenticated/runtime bang tai khoan admin vi sandbox chan ket noi Supabase.
 - Chua QA UI bang trinh duyet that trong moi truong nay vi khong co browser-control tool kha dung trong turn nay.
 - Chua QA deployed app bang tai khoan `duydy@kootoro.com` vi sandbox chan network ra GitHub Pages/Render.
+- Note moi can tiep tuc QA tay sau khi user chay:
+  - Kiem tra lai spacing thuc te cua tab trang thai trong `Task cua toi` sau khi co nhieu task.
+  - Kiem tra luong sua task: doi start/deadline, tick het checklist, confirm chuyen `Hoan thanh`.
+  - Kiem tra luong task dinh ky: daily T2-T6, monthly ngay 15/3/5, bam row de sua va luu lai.
 - Can chay SQL `supabase/run_this_update_recurring_monthly.sql` tren Supabase truoc khi dung task dinh ky thang o moi truong da co database cu.
 - Can chay SQL `supabase/run_this_update_project_avatar_inactive_review_cleanup.sql` tren Supabase de them avatar du an, inactive project, bo `review`, va sua default ID checklist.
 - Can chay SQL `supabase/run_this_update_recurring_permissions.sql` tren Supabase de them quyen task dinh ky va RLS cho nhan su tao/sua mau dinh ky hop le.
+- Can chay SQL `supabase/run_this_update_recurring_weekdays.sql` tren Supabase de them cot lich chay theo thu cho task dinh ky.
 - Render service hien tai o My/Oregon khong tu doi sang Singapore sau khi sua `render.yaml`; can tao service moi tu Blueprint hoac Web Service moi voi region Singapore, copy env vars, test `/health`, roi doi `VITE_API_URL`.
 - Chua chuyen CRUD task sang Supabase direct; viec nay can audit/si chat RLS truoc de tranh lo data.
-- Can them rule luu task: sau khi bam `Luu thay doi`, neu tat ca checklist con da duoc tick xong thi tu chuyen task sang `Hoan thanh`.
 - Cac luong da QA tinh/code review:
   - Dashboard / Reports voi task members.
   - Nhan su / role / project members.

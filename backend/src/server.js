@@ -17,12 +17,28 @@ app.use(express.json());
 
 const SYSTEM_ROLE_ORDER = ["admin", "manager", "staff"];
 const TASK_STATUS_VALUES = ["todo", "doing", "done", "cancelled"];
+const DEFAULT_TEMPLATE_WEEKDAYS = [1, 2, 3, 4, 5];
 const TASK_STATUS_LABELS = {
   todo: "Chưa bắt đầu",
   doing: "Đang làm",
   done: "Hoàn thành",
   cancelled: "Đã hủy",
 };
+
+function normalizeTemplateWeekdays(value, fallback = DEFAULT_TEMPLATE_WEEKDAYS) {
+  if (!Array.isArray(value) || !value.length) return fallback;
+  const allowed = new Set([0, 1, 2, 3, 4, 5, 6]);
+  const normalized = [...new Set(value.map(Number).filter((item) => allowed.has(item)))];
+  return normalized.length ? normalized : fallback;
+}
+
+function statusForStartTime(status, startTime) {
+  if (["done", "cancelled"].includes(status)) return status;
+  if (startTime && new Date(startTime).getTime() <= Date.now() && (!status || status === "todo")) {
+    return "doing";
+  }
+  return status || "todo";
+}
 
 function primaryRole(roleIds = []) {
   return SYSTEM_ROLE_ORDER.find((role) => roleIds.includes(role)) || roleIds[0] || "staff";
@@ -844,6 +860,7 @@ app.post("/api/daily-templates", async (req, res, next) => {
         due_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).default("17:00"),
         recurrence_type: z.enum(["daily", "monthly"]).default("daily"),
         monthly_day: z.number().int().min(1).max(31).nullable().optional(),
+        weekdays: z.array(z.number().int().min(0).max(6)).nullable().optional(),
         checklist_items: z.array(z.string().min(1)).default([]),
         requires_note: z.boolean().default(true),
         active: z.boolean().default(true),
@@ -859,6 +876,7 @@ app.post("/api/daily-templates", async (req, res, next) => {
       .insert({
         ...body,
         monthly_day: body.recurrence_type === "monthly" ? body.monthly_day || 1 : null,
+        weekdays: body.recurrence_type === "daily" ? normalizeTemplateWeekdays(body.weekdays) : null,
       })
       .select()
       .single();
@@ -881,6 +899,7 @@ app.patch("/api/daily-templates/:templateId", async (req, res, next) => {
         due_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
         recurrence_type: z.enum(["daily", "monthly"]).optional(),
         monthly_day: z.number().int().min(1).max(31).nullable().optional(),
+        weekdays: z.array(z.number().int().min(0).max(6)).nullable().optional(),
         checklist_items: z.array(z.string().min(1)).optional(),
         requires_note: z.boolean().optional(),
         active: z.boolean().optional(),
@@ -889,7 +908,7 @@ app.patch("/api/daily-templates/:templateId", async (req, res, next) => {
 
     const { data: currentTemplate, error: templateFetchError } = await req.db
       .from("daily_task_templates")
-      .select("project_id, assignee_id, recurrence_type")
+      .select("project_id, assignee_id, recurrence_type, weekdays")
       .eq("id", req.params.templateId)
       .single();
 
@@ -908,6 +927,9 @@ app.patch("/api/daily-templates/:templateId", async (req, res, next) => {
     const nextRecurrenceType = patch.recurrence_type || currentTemplate.recurrence_type || "daily";
     if (Object.prototype.hasOwnProperty.call(patch, "recurrence_type") || Object.prototype.hasOwnProperty.call(patch, "monthly_day")) {
       patch.monthly_day = nextRecurrenceType === "monthly" ? patch.monthly_day || 1 : null;
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "recurrence_type") || Object.prototype.hasOwnProperty.call(patch, "weekdays")) {
+      patch.weekdays = nextRecurrenceType === "daily" ? normalizeTemplateWeekdays(patch.weekdays || currentTemplate.weekdays) : null;
     }
 
     const { data, error } = await req.db
@@ -936,6 +958,7 @@ app.post("/api/tasks", async (req, res, next) => {
         start_time: z.string().optional().nullable(),
         due_time: z.string().optional().nullable(),
         priority: z.enum(["high", "medium", "low"]).default("medium"),
+        status: z.enum(TASK_STATUS_VALUES).optional(),
         checklist: z.array(z.string().min(1)).default([]),
         member_ids: z.array(z.string().uuid()).default([]),
       })
@@ -943,6 +966,7 @@ app.post("/api/tasks", async (req, res, next) => {
 
     const assigneeId = body.assignee_id || req.user.id;
     const { checklist, member_ids: memberIds, ...taskPayload } = body;
+    const initialStatus = statusForStartTime(body.status, body.start_time);
     if (body.project_id) {
       await assertTaskMemberIds(body.project_id, [assigneeId]);
     }
@@ -955,7 +979,7 @@ app.post("/api/tasks", async (req, res, next) => {
         ...taskPayload,
         creator_id: req.user.id,
         assignee_id: assigneeId,
-        status: "todo",
+        status: initialStatus,
       })
       .select()
       .single();
@@ -1088,6 +1112,10 @@ app.patch("/api/tasks/:taskId", async (req, res, next) => {
       }
     }
 
+    if (body.start_time) {
+      body.status = statusForStartTime(body.status, body.start_time);
+    }
+
     const { data, error } = await req.db
       .from("tasks")
       .update(body)
@@ -1135,6 +1163,10 @@ app.patch("/api/tasks/:taskId/detail", async (req, res, next) => {
         completion_note: z.string().nullable().optional(),
       })
       .parse(req.body);
+
+    if (body.task.start_time) {
+      body.task.status = statusForStartTime(body.task.status, body.task.start_time);
+    }
 
     const { data: currentTask, error: taskFetchError } = await req.db
       .from("tasks")

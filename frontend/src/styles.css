@@ -1227,7 +1227,7 @@ textarea {
   min-width: 0;
   color: inherit;
   font-size: 0.88rem;
-  font-weight: 650;
+  font-weight: 520;
   line-height: 1.32;
 }
 
@@ -2079,6 +2079,77 @@ textarea {
   display: grid;
   gap: 10px;
   margin-top: 16px;
+}
+
+.weekday-field small {
+  color: #6d8179;
+  display: block;
+  font-size: 0.78rem;
+  margin-top: 6px;
+}
+
+.weekday-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.weekday-picker button {
+  border: 1px solid rgba(74, 99, 91, 0.14);
+  border-radius: 999px;
+  background: #f4faf7;
+  color: #24483f;
+  min-height: 34px;
+  padding: 6px 12px;
+  font-weight: 800;
+}
+
+.weekday-picker button.selected {
+  border-color: rgba(22, 119, 97, 0.3);
+  background: #167761;
+  color: #f5fffb;
+}
+
+.daily-template-list-head,
+.daily-template-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.3fr) minmax(170px, 0.9fr) minmax(170px, 0.9fr) auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.daily-template-list-head {
+  color: #657a72;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 12px;
+}
+
+.daily-template-row {
+  border: 1px solid rgba(74, 99, 91, 0.12);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.daily-template-row.selected {
+  border-color: rgba(22, 119, 97, 0.44);
+  box-shadow: inset 4px 0 0 #167761;
+}
+
+.daily-template-main strong,
+.daily-template-cell span {
+  display: block;
+}
+
+.daily-template-main p,
+.daily-template-cell small {
+  color: #687b75;
+  display: block;
+  margin: 4px 0 0;
 }
 
 .daily-run-report {
@@ -4245,6 +4316,58 @@ progress {
   color: #c5f8df;
 }
 
+.task-tabs button.tab-done,
+:root[data-theme="dark"] .task-tabs button.tab-done,
+:root[data-theme="purple"] .task-tabs button.tab-done {
+  border-color: rgba(80, 205, 137, 0.28);
+  color: #c6f5d7;
+}
+
+.task-tabs button.tab-done.active,
+:root[data-theme="dark"] .task-tabs button.tab-done.active,
+:root[data-theme="purple"] .task-tabs button.tab-done.active {
+  background: linear-gradient(135deg, #148a4f, #3fcf82);
+  color: #f4fff8;
+}
+
+.task-tabs button.tab-cancelled,
+:root[data-theme="dark"] .task-tabs button.tab-cancelled,
+:root[data-theme="purple"] .task-tabs button.tab-cancelled {
+  border-color: rgba(239, 106, 93, 0.28);
+  color: #ffd0ca;
+}
+
+.task-tabs button.tab-cancelled.active,
+:root[data-theme="dark"] .task-tabs button.tab-cancelled.active,
+:root[data-theme="purple"] .task-tabs button.tab-cancelled.active {
+  background: linear-gradient(135deg, #9f2f2a, #ef6a5d);
+  color: #fff7f5;
+}
+
+:root[data-theme="dark"] .weekday-picker button,
+:root[data-theme="dark"] .daily-template-row,
+:root[data-theme="dark"] .daily-template-list-head,
+:root[data-theme="purple"] .weekday-picker button,
+:root[data-theme="purple"] .daily-template-row,
+:root[data-theme="purple"] .daily-template-list-head {
+  border-color: rgba(207, 237, 226, 0.12);
+  background: rgba(8, 27, 22, 0.88);
+  color: #edf8f4;
+}
+
+:root[data-theme="purple"] .weekday-picker button,
+:root[data-theme="purple"] .daily-template-row,
+:root[data-theme="purple"] .daily-template-list-head {
+  border-color: rgba(167, 139, 250, 0.24);
+  background: rgba(18, 14, 31, 0.86);
+}
+
+:root[data-theme="dark"] .weekday-picker button.selected,
+:root[data-theme="purple"] .weekday-picker button.selected {
+  background: linear-gradient(135deg, #1d8e71, #38c59a);
+  color: #f6fffb;
+}
+
 :root[data-theme="dark"] .save-state-note.error {
   background: rgba(190, 55, 47, 0.2);
   color: #ffc5bd;
@@ -4855,7 +4978,7 @@ body {
 
 /* Compact task-card pass: keep dense board readable after theme overrides. */
 .kanban-card .task-card-title {
-  font-weight: 560;
+  font-weight: 500;
 }
 
 .kanban-card .card-title-row {

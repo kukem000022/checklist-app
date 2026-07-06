@@ -95,6 +95,17 @@ const emptyProjectForm = {
   avatar_url: "",
 };
 
+const weekdayOptions = [
+  { value: 1, label: "T2" },
+  { value: 2, label: "T3" },
+  { value: 3, label: "T4" },
+  { value: 4, label: "T5" },
+  { value: 5, label: "T6" },
+  { value: 6, label: "T7" },
+  { value: 0, label: "CN" },
+];
+const defaultRecurringWeekdays = [1, 2, 3, 4, 5];
+
 const avatarMaxBytes = 500 * 1024;
 const avatarMimeTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -746,6 +757,20 @@ function sortTasksNewestFirst(items) {
   });
 }
 
+function normalizeWeekdays(value, fallback = defaultRecurringWeekdays) {
+  const source = Array.isArray(value) && value.length ? value : fallback;
+  const allowed = new Set(weekdayOptions.map((item) => item.value));
+  const normalized = source.map(Number).filter((item) => allowed.has(item));
+  return normalized.length ? weekdayOptions.map((item) => item.value).filter((item) => normalized.includes(item)) : fallback;
+}
+
+function weekdayListLabel(value) {
+  const days = normalizeWeekdays(value, weekdayOptions.map((item) => item.value));
+  if (days.length === 7) return "Tất cả ngày";
+  if (days.join(",") === defaultRecurringWeekdays.join(",")) return "T2-T6";
+  return weekdayOptions.filter((item) => days.includes(item.value)).map((item) => item.label).join(", ");
+}
+
 const boardColumns = [
   { id: "todo", title: "Chưa bắt đầu", hint: "Việc cần chuẩn bị" },
   { id: "doing", title: "Đang làm", hint: "Đang được xử lý" },
@@ -839,7 +864,7 @@ function TasksPage({ tasks, projects, profiles, filters, setFilters, openTask, o
       <div className="task-tabs-row compact-tabs-row">
         <div className="tabs task-tabs compact-filter-tabs">
           {tabItems.map(([id, label, count]) => (
-            <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
+            <button key={id} className={`${tab === id ? "active" : ""} tab-${id}`} onClick={() => setTab(id)}>
               {label}
               <span>{count}</span>
             </button>
@@ -1011,10 +1036,8 @@ function projectAccent(id) {
 }
 
 function TaskKanbanCard({ task, openTask }) {
-  const progress = checklistProgress(task);
   const deadline = deadlineState(task);
   const DeadlineIcon = deadline.icon;
-  const telegram = telegramState(task);
   const members = taskMemberProfiles(task);
   const doneCount = (task.task_checklists || []).filter((item) => item.is_done).length;
   const totalChecklist = (task.task_checklists || []).length;
@@ -1025,9 +1048,6 @@ function TaskKanbanCard({ task, openTask }) {
         <span className={`priority-dot priority-${task.priority}`} title={`Ưu tiên: ${priorityLabel(task.priority)}`} />
         <span className="task-card-title">{task.title}</span>
         {isFreshTask(task) && <b className="fresh-pill">Mới</b>}
-      </span>
-      <span className="card-mini-labels">
-        <b className={`telegram-pill ${telegram.tone}`}>{telegram.label}</b>
       </span>
       {task.due_time && (
       <span className="card-compact-meta">
@@ -1048,7 +1068,6 @@ function TaskKanbanCard({ task, openTask }) {
         <span className="card-check-progress">
           <span className="checklist-mini-icon"><Check size={10} /></span>
           <small>{doneCount}/{totalChecklist}</small>
-          <small>{progress}%</small>
         </span>
       </span>
     </button>
@@ -1796,6 +1815,7 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
     due_time: "17:00",
     recurrence_type: "daily",
     monthly_day: 1,
+    weekdays: defaultRecurringWeekdays,
     checklist_items: "",
     requires_note: true,
   };
@@ -1838,6 +1858,7 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
       due_time: String(template.due_time || "17:00").slice(0, 5),
       recurrence_type: template.recurrence_type || "daily",
       monthly_day: template.monthly_day || 1,
+      weekdays: normalizeWeekdays(template.weekdays),
       checklist_items: (template.checklist_items || []).join("\n"),
       requires_note: Boolean(template.requires_note),
     });
@@ -1848,7 +1869,22 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
     if ((template.recurrence_type || "daily") === "monthly") {
       return `Hằng tháng ngày ${template.monthly_day || 1}`;
     }
-    return "Hằng ngày";
+    return `Hằng ngày · ${weekdayListLabel(template.weekdays)}`;
+  }
+
+  function toggleTemplateWeekday(day) {
+    setTemplateDraft((current) => {
+      const currentDays = new Set(normalizeWeekdays(current.weekdays));
+      if (currentDays.has(day) && currentDays.size > 1) {
+        currentDays.delete(day);
+      } else {
+        currentDays.add(day);
+      }
+      return {
+        ...current,
+        weekdays: weekdayOptions.map((item) => item.value).filter((item) => currentDays.has(item)),
+      };
+    });
   }
 
   async function submitDailyTemplate(event) {
@@ -1867,6 +1903,7 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
           due_time: templateDraft.due_time,
           recurrence_type: templateDraft.recurrence_type,
           monthly_day: templateDraft.recurrence_type === "monthly" ? Number(templateDraft.monthly_day || 1) : null,
+          weekdays: templateDraft.recurrence_type === "daily" ? normalizeWeekdays(templateDraft.weekdays) : null,
           checklist_items: templateDraft.checklist_items.split("\n").map((item) => item.trim()).filter(Boolean),
           requires_note: templateDraft.requires_note,
         });
@@ -1880,6 +1917,7 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
           due_time: templateDraft.due_time,
           recurrence_type: templateDraft.recurrence_type,
           monthly_day: templateDraft.recurrence_type === "monthly" ? Number(templateDraft.monthly_day || 1) : null,
+          weekdays: templateDraft.recurrence_type === "daily" ? normalizeWeekdays(templateDraft.weekdays) : null,
           checklist_items: templateDraft.checklist_items.split("\n").map((item) => item.trim()).filter(Boolean),
           requires_note: templateDraft.requires_note,
           active: true,
@@ -1980,6 +2018,24 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
               <small>Nếu rơi thứ 7/CN sẽ tạo vào thứ 2 kế tiếp.</small>
             </label>
           )}
+          {templateDraft.recurrence_type === "daily" && (
+            <label className="wide-field weekday-field">
+              Lịch chạy trong tuần
+              <span className="weekday-picker">
+                {weekdayOptions.map((day) => (
+                  <button
+                    key={day.value}
+                    type="button"
+                    className={normalizeWeekdays(templateDraft.weekdays).includes(day.value) ? "selected" : ""}
+                    onClick={() => toggleTemplateWeekday(day.value)}
+                  >
+                    {day.label}
+                  </button>
+                ))}
+              </span>
+              <small>Mặc định chạy T2-T6. Bỏ chọn T7/CN nếu task không cần sinh cuối tuần.</small>
+            </label>
+          )}
           <label>
             Dự án
             <select value={templateDraft.project_id} onChange={(event) => updateTemplateProject(event.target.value)}>
@@ -2028,11 +2084,28 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
           </div>
         </form>
         <div className="daily-template-list">
+          {dailyTemplates.length > 0 && (
+            <div className="daily-template-list-head">
+              <span>Mẫu định kỳ</span>
+              <span>Lịch chạy</span>
+              <span>Người phụ trách</span>
+              <span>Trạng thái</span>
+              <span>Thao tác</span>
+            </div>
+          )}
           {dailyTemplates.map((template) => (
-            <article key={template.id} className={`daily-template-card ${selectedTemplateId === template.id ? "selected" : ""}`}>
-              <button type="button" className="template-select-button" onClick={() => selectTemplate(template)}>
+            <article key={template.id} className={`daily-template-row ${selectedTemplateId === template.id ? "selected" : ""}`}>
+              <button type="button" className="template-select-button daily-template-main" onClick={() => selectTemplate(template)}>
                 <strong>{template.title}</strong>
-                <p>{recurrenceLabel(template)} · {template.projects?.name || "Không gắn dự án"} · {personName(template.assignee)} · Hạn {String(template.due_time).slice(0, 5)}</p>
+                <p>{template.projects?.name || "Không gắn dự án"}</p>
+              </button>
+              <button type="button" className="template-select-button daily-template-cell" onClick={() => selectTemplate(template)}>
+                <span>{recurrenceLabel(template)}</span>
+                <small>Hạn {String(template.due_time).slice(0, 5)} · {(template.checklist_items || []).length} việc nhỏ</small>
+              </button>
+              <button type="button" className="template-select-button daily-template-cell" onClick={() => selectTemplate(template)}>
+                <span>{personName(template.assignee)}</span>
+                <small>{template.requires_note ? "Bắt buộc note" : "Không bắt buộc note"}</small>
               </button>
               <b className={template.active ? "status-pill" : "status-pill muted"}>{template.active ? "Đang bật" : "Tạm tắt"}</b>
               <button className="secondary-action compact-action" disabled={Boolean(templateSavingId)} onClick={() => toggleTemplate(template)}>
@@ -2340,6 +2413,7 @@ function SettingsPage({ profile, onSaved }) {
 function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, saveTaskDetail, addComment }) {
   const [comment, setComment] = useState("");
   const [statusDraft, setStatusDraft] = useState(task?.status || "todo");
+  const [timeDraft, setTimeDraft] = useState({ start_time: "", due_time: "" });
   const [checklistDraft, setChecklistDraft] = useState([]);
   const [memberIds, setMemberIds] = useState([]);
   const [completionNote, setCompletionNote] = useState("");
@@ -2351,6 +2425,10 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
   useEffect(() => {
     if (!task) return;
     setStatusDraft(task.status);
+    setTimeDraft({
+      start_time: toLocalInputValue(task.start_time),
+      due_time: toLocalInputValue(task.due_time),
+    });
     setChecklistDraft(
       (task.task_checklists || [])
         .slice()
@@ -2394,7 +2472,12 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
   const baselineMemberIds = JSON.stringify((task.task_members || []).map((item) => item.user_id).sort());
   const membersChanged = JSON.stringify([...memberIds].sort()) !== baselineMemberIds;
   const statusChanged = statusDraft !== task.status;
-  const hasChanges = statusChanged || checklistChanged || membersChanged || Boolean(completionNote.trim());
+  const baselineTimes = JSON.stringify({
+    start_time: toLocalInputValue(task.start_time),
+    due_time: toLocalInputValue(task.due_time),
+  });
+  const timeChanged = JSON.stringify(timeDraft) !== baselineTimes;
+  const hasChanges = statusChanged || checklistChanged || membersChanged || timeChanged || Boolean(completionNote.trim());
   const activeProject = projects.find((project) => project.id === task.project_id);
   const projectMemberIds = new Set((activeProject?.project_members || []).map((item) => item.user_id));
   const projectMemberProfiles = task.project_id
@@ -2463,7 +2546,8 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
   }
 
   async function saveAll() {
-    const parentDue = task.due_time ? new Date(task.due_time).getTime() : null;
+    const parentDueValue = fromLocalInputValue(timeDraft.due_time);
+    const parentDue = parentDueValue ? new Date(parentDueValue).getTime() : null;
     const invalidChild = checklistDraft.find(
       (item) => !item.deleted && item.due_time && parentDue && new Date(fromLocalInputValue(item.due_time)).getTime() > parentDue,
     );
@@ -2475,8 +2559,26 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
     setSaveState("saving");
     setMessage("");
     try {
+      const visibleChecklist = checklistDraft.filter((item) => !item.deleted && item.title.trim());
+      let nextStatus = statusDraft;
+      const nextStartTime = fromLocalInputValue(timeDraft.start_time);
+      if (nextStartTime && new Date(nextStartTime).getTime() <= Date.now() && nextStatus === "todo") {
+        nextStatus = "doing";
+      }
+      if (
+        visibleChecklist.length > 0
+        && visibleChecklist.every((item) => item.is_done)
+        && !["done", "cancelled"].includes(statusDraft)
+      ) {
+        const shouldComplete = window.confirm("Tất cả công việc nhỏ đã hoàn thành. Chuyển task này sang Hoàn thành luôn nhé?");
+        if (shouldComplete) nextStatus = "done";
+      }
       await saveTaskDetail(task.id, {
-        task: { status: statusDraft },
+        task: {
+          status: nextStatus,
+          start_time: nextStartTime,
+          due_time: parentDueValue,
+        },
         member_ids: memberIds,
         checklist: checklistDraft
           .filter((item) => item.deleted || item.title.trim())
@@ -2492,6 +2594,7 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
           })),
         completion_note: completionNote || null,
       });
+      setStatusDraft(nextStatus);
       setSaveState("saved");
       window.setTimeout(() => setSaveState((current) => (current === "saved" ? "idle" : current)), 2500);
     } catch (currentError) {
@@ -2518,8 +2621,23 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
         <p>{task.description || "Chưa có mô tả."}</p>
         <div className="detail-grid">
           <span><b>Phụ trách</b>{personName(task.assignee)}</span>
-          <span><b>Deadline</b>{formatDate(task.due_time)}</span>
           <span><b>Ưu tiên</b>{priorityLabel(task.priority)}</span>
+          <label>
+            <b>Bắt đầu</b>
+            <input
+              type="datetime-local"
+              value={timeDraft.start_time}
+              onChange={(event) => setTimeDraft((current) => ({ ...current, start_time: event.target.value }))}
+            />
+          </label>
+          <label>
+            <b>Deadline</b>
+            <input
+              type="datetime-local"
+              value={timeDraft.due_time}
+              onChange={(event) => setTimeDraft((current) => ({ ...current, due_time: event.target.value }))}
+            />
+          </label>
           <label>
             <b>Trạng thái</b>
             <select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value)}>
@@ -2627,7 +2745,7 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
                           <input
                             type="datetime-local"
                             value={item.due_time}
-                            max={toLocalInputValue(task.due_time)}
+                            max={timeDraft.due_time}
                             onChange={(event) => updateChecklistItem(key, { due_time: event.target.value })}
                           />
                         </label>
@@ -2721,14 +2839,16 @@ function CreateTaskModal({ projects, profiles, profile, onCreate, onClose }) {
       if (selectedProject && !form.assignee_id) {
         throw new Error("Hãy chọn người phụ trách thuộc dự án.");
       }
+      const startTime = fromLocalInputValue(form.start_time);
       await onCreate({
         project_id: form.project_id || null,
         list_id: form.list_id || null,
         title: form.title,
         description: form.description || null,
         assignee_id: form.assignee_id || profile.id,
-        start_time: fromLocalInputValue(form.start_time),
+        start_time: startTime,
         due_time: fromLocalInputValue(form.due_time),
+        status: startTime && new Date(startTime).getTime() <= Date.now() ? "doing" : "todo",
         priority: form.priority,
         member_ids: selectedProject ? form.member_ids : [],
         checklist: form.checklist.split("\n").map((line) => line.trim()).filter(Boolean),
