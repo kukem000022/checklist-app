@@ -20,6 +20,10 @@ services:
         sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
+      - key: ZALO_PUSH_URL
+        sync: false
+      - key: ZALO_PUSH_API_TOKEN
+        sync: false
       - key: REMINDER_CRON
         value: "*/15 * * * *"
       - key: OVERDUE_GRACE_MINUTES

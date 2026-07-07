@@ -1,5 +1,6 @@
 import { admin } from "./supabase.js";
 import { sendTelegramMessage } from "./telegram.js";
+import { sendZaloPush } from "./zalo.js";
 import { config } from "./config.js";
 
 const reminderWindows = [
@@ -8,6 +9,12 @@ const reminderWindows = [
 ];
 const overdueRepeatMinutes = 30;
 const defaultTemplateWeekdays = [1, 2, 3, 4, 5];
+const cleanStatusLabels = {
+  todo: "Chưa bắt đầu",
+  doing: "Đang làm",
+  done: "Hoàn thành",
+  cancelled: "Đã hủy",
+};
 const statusLabels = {
   todo: "Chưa bắt đầu",
   doing: "Đang làm",
@@ -72,6 +79,42 @@ function buildMessage(type, task, recipients = []) {
     `• <b>Task:</b> ${escapeHtml(task.title)}`,
     `• <b>Deadline:</b> ${formatDate(task.due_time)}`,
     `• <b>Trạng thái:</b> ${statusLabels[task.status] || task.status || "Chưa bắt đầu"}`,
+    type === "overdue"
+      ? "Task đã quá hạn. Vui lòng cập nhật tiến độ hoặc ghi chú lý do xử lý trễ."
+      : "Vui lòng kiểm tra và hoàn thành đúng hạn.",
+  ].join("\n");
+}
+
+function buildTelegramReminderMessage(type, task, recipients = []) {
+  const projectName = escapeHtml(task.projects?.name || "Cá nhân");
+  const assignee = recipients.length ? recipients.map(personMention).join(", ") : personMention(task.assignee);
+  const title = type === "overdue" ? "⚠️ TASK QUÁ HẠN" : "⏰ TASK SẮP TỚI HẠN";
+
+  return [
+    `<b>${title}</b>`,
+    `• <b>Dự án:</b> ${projectName}`,
+    `• <b>Nhân sự:</b> ${assignee}`,
+    `• <b>Task:</b> ${escapeHtml(task.title)}`,
+    `• <b>Deadline:</b> ${formatDate(task.due_time)}`,
+    `• <b>Trạng thái:</b> ${cleanStatusLabels[task.status] || task.status || "Chưa bắt đầu"}`,
+    type === "overdue"
+      ? "Task đã quá hạn. Vui lòng cập nhật tiến độ hoặc ghi chú lý do xử lý trễ."
+      : "Vui lòng kiểm tra và hoàn thành đúng hạn.",
+  ].join("\n");
+}
+
+function buildZaloReminderMessage(type, task, recipients = []) {
+  const projectName = task.projects?.name || "Cá nhân";
+  const assignee = recipients.length ? recipients.map(personLabel).join(", ") : personLabel(task.assignee);
+  const title = type === "overdue" ? "⚠️ TASK QUÁ HẠN" : "⏰ TASK SẮP TỚI HẠN";
+
+  return [
+    title,
+    `• Dự án: ${projectName}`,
+    `• Nhân sự: ${assignee}`,
+    `• Task: ${task.title}`,
+    `• Deadline: ${formatDate(task.due_time)}`,
+    `• Trạng thái: ${cleanStatusLabels[task.status] || task.status || "Chưa bắt đầu"}`,
     type === "overdue"
       ? "Task đã quá hạn. Vui lòng cập nhật tiến độ hoặc ghi chú lý do xử lý trễ."
       : "Vui lòng kiểm tra và hoàn thành đúng hạn.",
@@ -145,16 +188,52 @@ async function getDefaultTelegramGroupChatId() {
   return data?.value || null;
 }
 
+async function getAppSettingValue(key) {
+  const { data, error } = await admin
+    .from("app_settings")
+    .select("value")
+    .eq("key", key)
+    .maybeSingle();
+
+  if (error) {
+    if (["42P01", "PGRST205"].includes(error.code)) return null;
+    throw error;
+  }
+
+  return data?.value || null;
+}
+
+async function getDefaultZaloTarget() {
+  const [groupId, flowCode] = await Promise.all([
+    getAppSettingValue("default_zalo_group_id"),
+    getAppSettingValue("default_zalo_flow_code"),
+  ]);
+
+  if (groupId) return { groupId };
+  if (flowCode) return { flowCode };
+  return null;
+}
+
+function notificationStatus(...results) {
+  const availableResults = results.filter(Boolean);
+  if (availableResults.some((result) => result.ok)) return "sent";
+  if (availableResults.length && availableResults.every((result) => result.skipped)) return "skipped";
+  return "failed";
+}
+
 async function sendForTask(type, task, recipient, chatId) {
   if (await notificationExists(task.id, recipient.id, type)) {
     return;
   }
 
-  const result = await sendTelegramMessage(chatId || recipient.telegram_chat_id, buildMessage(type, task, [recipient]));
+  const result = await sendTelegramMessage(
+    chatId || recipient.telegram_chat_id,
+    buildTelegramReminderMessage(type, task, [recipient]),
+  );
   await logNotification(task.id, recipient.id, type, result.ok ? "sent" : result.skipped ? "skipped" : "failed");
 }
 
-async function sendReminder(type, task, recipients, groupChatId) {
+async function sendReminder(type, task, recipients, groupChatId, zaloTarget) {
   const pendingRecipients = [];
   for (const recipient of recipients) {
     if (!(await notificationExists(task.id, recipient.id, type))) {
@@ -166,10 +245,16 @@ async function sendReminder(type, task, recipients, groupChatId) {
     return;
   }
 
-  if (groupChatId) {
-    const result = await sendTelegramMessage(groupChatId, buildMessage(type, task, pendingRecipients));
+  if (groupChatId || zaloTarget) {
+    const telegramResult = groupChatId
+      ? await sendTelegramMessage(groupChatId, buildTelegramReminderMessage(type, task, pendingRecipients))
+      : null;
+    const zaloResult = zaloTarget
+      ? await sendZaloPush({ ...zaloTarget, message: buildZaloReminderMessage(type, task, pendingRecipients) })
+      : null;
+    const status = notificationStatus(telegramResult, zaloResult);
     for (const recipient of pendingRecipients) {
-      await logNotification(task.id, recipient.id, type, result.ok ? "sent" : result.skipped ? "skipped" : "failed");
+      await logNotification(task.id, recipient.id, type, status);
     }
     return;
   }
@@ -399,6 +484,7 @@ export async function runReminderSweep() {
   }
 
   const defaultGroupChatId = await getDefaultTelegramGroupChatId();
+  const defaultZaloTarget = await getDefaultZaloTarget();
 
   for (const task of tasks || []) {
     const due = new Date(task.due_time);
@@ -408,12 +494,12 @@ export async function runReminderSweep() {
 
     for (const window of reminderWindows) {
       if (minutesUntilDue >= window.fromMinutes && minutesUntilDue <= window.toMinutes) {
-        await sendReminder(window.type, task, recipients, groupChatId);
+        await sendReminder(window.type, task, recipients, groupChatId, defaultZaloTarget);
       }
     }
 
     if (minutesUntilDue < -config.overdueGraceMinutes) {
-      await sendReminder("overdue", task, recipients, groupChatId);
+      await sendReminder("overdue", task, recipients, groupChatId, defaultZaloTarget);
 
       if (
         !groupChatId &&

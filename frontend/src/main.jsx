@@ -2128,7 +2128,11 @@ function SettingsPage({ profile, onSaved }) {
   });
   const [avatarDraft, setAvatarDraft] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [appSettings, setAppSettings] = useState({ default_telegram_group_chat_id: "" });
+  const [appSettings, setAppSettings] = useState({
+    default_telegram_group_chat_id: "",
+    default_zalo_group_id: "",
+    default_zalo_flow_code: "",
+  });
   const [passwordForm, setPasswordForm] = useState({ password: "", confirm: "" });
   const [telegramChats, setTelegramChats] = useState([]);
   const [profileMessage, setProfileMessage] = useState("");
@@ -2202,10 +2206,16 @@ function SettingsPage({ profile, onSaved }) {
       .then((settings) => {
         setAppSettings({
           default_telegram_group_chat_id: settings.default_telegram_group_chat_id || "",
+          default_zalo_group_id: settings.default_zalo_group_id || "",
+          default_zalo_flow_code: settings.default_zalo_flow_code || "",
         });
       })
       .catch(() => {
-        setAppSettings({ default_telegram_group_chat_id: "" });
+        setAppSettings({
+          default_telegram_group_chat_id: "",
+          default_zalo_group_id: "",
+          default_zalo_flow_code: "",
+        });
       });
   }, []);
 
@@ -2295,9 +2305,11 @@ function SettingsPage({ profile, onSaved }) {
         method: "PATCH",
         body: JSON.stringify({
           default_telegram_group_chat_id: appSettings.default_telegram_group_chat_id || null,
+          default_zalo_group_id: appSettings.default_zalo_group_id || null,
+          default_zalo_flow_code: appSettings.default_zalo_flow_code || null,
         }),
       });
-      setSettingsMessage("Đã lưu cấu hình Telegram chung.");
+      setSettingsMessage("Đã lưu cấu hình thông báo chung.");
     } catch (currentError) {
       setSettingsMessage(currentError.message);
     } finally {
@@ -2381,9 +2393,40 @@ function SettingsPage({ profile, onSaved }) {
           </label>
           <button className="secondary-action" disabled={savingAppSettings} aria-busy={savingAppSettings}>
             {savingAppSettings ? <LoaderCircle size={17} className="spin-icon" /> : <Send size={17} />}
-            {savingAppSettings ? "Đang lưu..." : "Lưu Telegram chung"}
+            {savingAppSettings ? "Đang lưu..." : "Lưu thông báo chung"}
           </button>
           {settingsMessage && <p className="mini-notice">{settingsMessage}</p>}
+        </form>
+      </section>
+
+      <section className="panel">
+        <div className="section-head">
+          <div>
+            <h2>Zalo chung</h2>
+            <p>Dùng cổng Zalo push cho task mới, sắp hạn và quá hạn.</p>
+          </div>
+        </div>
+        <form onSubmit={saveAppSettings} className="stack-form">
+          <label>
+            Zalo group ID mặc định
+            <input
+              value={appSettings.default_zalo_group_id}
+              onChange={(event) => setAppSettings({ ...appSettings, default_zalo_group_id: event.target.value })}
+              placeholder="193463471384782864"
+            />
+          </label>
+          <label>
+            Hoặc flowCode mặc định
+            <input
+              value={appSettings.default_zalo_flow_code}
+              onChange={(event) => setAppSettings({ ...appSettings, default_zalo_flow_code: event.target.value })}
+              placeholder="TPB"
+            />
+          </label>
+          <button className="secondary-action" disabled={savingAppSettings} aria-busy={savingAppSettings}>
+            {savingAppSettings ? <LoaderCircle size={17} className="spin-icon" /> : <Send size={17} />}
+            {savingAppSettings ? "Đang lưu..." : "Lưu Zalo chung"}
+          </button>
         </form>
       </section>
 

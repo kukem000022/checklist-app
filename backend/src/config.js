@@ -7,6 +7,8 @@ export const config = {
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+  zaloPushUrl: process.env.ZALO_PUSH_URL,
+  zaloPushApiToken: process.env.ZALO_PUSH_API_TOKEN || process.env.PUSH_API_TOKEN,
   reminderCron: process.env.REMINDER_CRON || "*/15 * * * *",
   overdueGraceMinutes: Number(process.env.OVERDUE_GRACE_MINUTES || 0),
 };

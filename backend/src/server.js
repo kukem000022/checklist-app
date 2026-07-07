@@ -6,6 +6,7 @@ import { requireUser } from "./auth.js";
 import { assertConfig, config } from "./config.js";
 import { admin, getProfile } from "./supabase.js";
 import { getTelegramChatIds, getTelegramUpdates, sendTelegramMessage } from "./telegram.js";
+import { sendZaloPush } from "./zalo.js";
 import { runReminderSweep } from "./reminders.js";
 
 assertConfig();
@@ -178,6 +179,36 @@ function buildTaskTelegramMessage(type, task, project, recipients = []) {
   ].filter(Boolean).join("\n");
 }
 
+function buildTaskZaloMessage(type, task, project, recipients = []) {
+  const title = type === "new_task" ? "✅ TASK MỚI" : "⚠️ TASK QUÁ HẠN";
+  const projectName = project?.name || "Cá nhân";
+  const recipientText = recipients.length
+    ? recipients.map((recipient) => recipient?.full_name || recipient?.email || "Nhân sự").join(", ")
+    : "Chưa rõ";
+  return [
+    title,
+    `• Dự án: ${projectName}`,
+    `• Nhân sự: ${recipientText}`,
+    `• Task: ${task.title}`,
+    task.due_time ? `• Deadline: ${formatTelegramDate(task.due_time)}` : null,
+    `• Trạng thái: ${TASK_STATUS_LABELS[task.status] || task.status || "Chưa bắt đầu"}`,
+    type === "new_task"
+      ? "Vui lòng kiểm tra và cập nhật tiến độ trong hệ thống."
+      : "Task đã quá hạn. Vui lòng cập nhật tiến độ hoặc ghi chú lý do xử lý trễ.",
+  ].filter(Boolean).join("\n");
+}
+
+async function getDefaultZaloTarget() {
+  const [groupId, flowCode] = await Promise.all([
+    getAppSetting("default_zalo_group_id"),
+    getAppSetting("default_zalo_flow_code"),
+  ]);
+
+  if (groupId) return { groupId };
+  if (flowCode) return { flowCode };
+  return null;
+}
+
 async function assertTaskMemberIds(projectId, memberIds = []) {
   const normalized = [...new Set((memberIds || []).filter(Boolean))];
   if (!normalized.length) return [];
@@ -276,6 +307,8 @@ app.get("/api/settings", async (_req, res, next) => {
   try {
     res.json({
       default_telegram_group_chat_id: await getAppSetting("default_telegram_group_chat_id"),
+      default_zalo_group_id: await getAppSetting("default_zalo_group_id"),
+      default_zalo_flow_code: await getAppSetting("default_zalo_flow_code"),
     });
   } catch (error) {
     next(error);
@@ -292,13 +325,19 @@ app.patch("/api/settings", async (req, res, next) => {
     const body = z
       .object({
         default_telegram_group_chat_id: z.string().nullable().optional(),
+        default_zalo_group_id: z.string().nullable().optional(),
+        default_zalo_flow_code: z.string().nullable().optional(),
       })
       .parse(req.body);
 
     await setAppSetting("default_telegram_group_chat_id", body.default_telegram_group_chat_id || null);
+    await setAppSetting("default_zalo_group_id", body.default_zalo_group_id || null);
+    await setAppSetting("default_zalo_flow_code", body.default_zalo_flow_code || null);
 
     res.json({
       default_telegram_group_chat_id: body.default_telegram_group_chat_id || null,
+      default_zalo_group_id: body.default_zalo_group_id || null,
+      default_zalo_flow_code: body.default_zalo_flow_code || null,
     });
   } catch (error) {
     next(error);
@@ -1032,23 +1071,35 @@ app.post("/api/tasks", async (req, res, next) => {
 
     const defaultGroupChatId = await getAppSetting("default_telegram_group_chat_id");
     const targetGroupChatId = project?.telegram_group_chat_id || defaultGroupChatId;
+    const defaultZaloTarget = await getDefaultZaloTarget();
     const recipients = [
       { id: assigneeId, ...assignee },
       ...(taskMembers || []).filter((member) => member.id !== assigneeId),
     ].filter((recipient) => recipient.id);
 
-    if (targetGroupChatId) {
-      const result = await sendTelegramMessage(
-        targetGroupChatId,
-        buildTaskTelegramMessage("new_task", task, project, recipients),
-      );
+    if (targetGroupChatId || defaultZaloTarget) {
+      const telegramResult = targetGroupChatId
+        ? await sendTelegramMessage(
+            targetGroupChatId,
+            buildTaskTelegramMessage("new_task", task, project, recipients),
+          )
+        : null;
+      const zaloResult = defaultZaloTarget
+        ? await sendZaloPush({
+            ...defaultZaloTarget,
+            message: buildTaskZaloMessage("new_task", task, project, recipients),
+          })
+        : null;
+      const status = [telegramResult, zaloResult].filter(Boolean).some((result) => result.ok)
+        ? "sent"
+        : "skipped";
       if (recipients.length) {
         await admin.from("task_notifications").insert(
           recipients.map((recipient) => ({
             task_id: task.id,
             user_id: recipient.id,
             type: "new_task",
-            status: result.ok ? "sent" : "skipped",
+            status,
           })),
         );
       }

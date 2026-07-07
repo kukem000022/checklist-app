@@ -16,6 +16,8 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+ZALO_PUSH_URL=https://your-zalo-bot-render-url.onrender.com/api/push/zalo
+ZALO_PUSH_API_TOKEN=your-zalo-push-token
 REMINDER_CRON=*/15 * * * *
 OVERDUE_GRACE_MINUTES=0
 ```
@@ -74,7 +76,31 @@ Khong dua len GitHub:
 ```text
 SUPABASE_SERVICE_ROLE_KEY
 TELEGRAM_BOT_TOKEN
+ZALO_PUSH_API_TOKEN
 backend/.env
 ```
 
-Hai bien nay chi nam trong Render Environment.
+Nhung bien nay chi nam trong Render Environment.
+
+## Zalo Push
+
+Neu muon checklist gui them Zalo ngoai Telegram, dien tren Render backend:
+
+```text
+ZALO_PUSH_URL=https://your-zalo-bot-render-url.onrender.com/api/push/zalo
+ZALO_PUSH_API_TOKEN=token-bi-mat-cua-zalo-bot
+```
+
+Sau do vao app -> `Cai dat` -> `Zalo chung`:
+
+```text
+Zalo group ID mac dinh: 193463471384782864
+```
+
+Hoac dung:
+
+```text
+flowCode mac dinh: TPB
+```
+
+Neu dien ca hai, backend uu tien `group ID`. Neu chua dien Zalo chung, he thong van gui Telegram nhu cu.

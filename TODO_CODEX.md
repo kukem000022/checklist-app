@@ -291,6 +291,46 @@
   - Giu nguyen logic loc task hien tai, chi sua layout UI.
   - Da chay `node --check backend\src\server.js` pass.
   - Da chay `npm.cmd run build` pass.
+- Sau checkpoint mobile usability:
+  - Toi uu layout mobile cho app dung bang tay: sidebar thanh bottom nav co dinh, nut dieu huong gon, noi dung chinh tranh bi che boi safe-area.
+  - Task board tren mobile thanh khung lam viec co dinh theo chieu cao man hinh; project/task chi cuon ben trong khung, khong keo ngang/keo doc ca trang.
+  - Search/filter/tab/nut tao task trong `Task cua toi` duoc thu gon cho man hinh nho; tab trang thai cuon ngang, filter mo dang overlay gon.
+  - Task card tren mobile giam padding/font-size, cot project co width theo viewport, list task trong tung cot cuon doc rieng.
+  - Modal tao task chuyen thanh bottom sheet; drawer chi tiet task full-screen tren mobile, header va thanh luu sticky de thao tac de hon.
+  - File da sua: `frontend/src/styles.css`.
+  - Loi con lai: chua QA truc tiep tren Chrome device toolbar/mobile that trong sandbox nay.
+  - Da chay `npm.cmd run build` pass.
+  - Da chay `npm.cmd run lint` pass.
+- Sau checkpoint mobile shell override:
+  - Sua lop CSS mobile cuoi file de app dung `100dvh` that su, tranh keo/mat noi dung khi trinh duyet mobile co thanh dia chi.
+  - `app-main` tren mobile thanh flex column co cuon doc rieng cho cac trang form/settings, trong khi `Task cua toi` van giu board la khung lam viec co dinh.
+  - `task-workspace`/`compact-workspace` khong con ep `min-height` lon gay tran man hinh nho; board va tung cot task cuon noi bo bang `-webkit-overflow-scrolling: touch`.
+  - Modal tao task va drawer chi tiet tiep tuc cuon muot hon tren mobile.
+  - File da sua: `frontend/src/styles.css`.
+  - Loi con lai: chua QA truc tiep tren Chrome device toolbar/mobile that trong sandbox nay vi preview/browser runtime bi chan/khong on dinh.
+  - Da chay `node --check backend\src\server.js; node --check backend\src\reminders.js` pass.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build` pass.
+- Sau checkpoint mobile bottom nav QA:
+  - Kiem tra lai CSS mobile bottom nav: doi sang hang ngang co cuon noi bo, khong lam tran ngang body.
+  - QA Chrome headless viewport 390x844 voi session/API mock: `document/body` van 390px, `Task cua toi` khong bi horizontal overflow ca trang.
+  - Detail drawer mobile full viewport, co scroll noi bo va thanh nut luu/close sticky o day.
+  - Modal tao task mobile mo thanh panel trong viewport, cuon noi bo, khong lam tran ngang body.
+  - File da sua: `frontend/src/styles.css`.
+  - Ghi chu deploy GitHub Pages: local lint/build pass; loi hien tai nam o buoc `actions/deploy-pages@v4` khi tao Pages deployment.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build` pass.
+- Sau checkpoint Zalo Push notification:
+  - Them client goi Zalo Push API bang `ZALO_PUSH_URL` va `ZALO_PUSH_API_TOKEN`.
+  - Reminder sweep gui them Zalo cho task sap toi han/qua han neu da cau hinh Zalo chung; Telegram van giu nguyen.
+  - Tao task moi gui them Zalo neu co Zalo chung; tranh gui lap nhieu tin Zalo cho tung thanh vien trong cung task.
+  - Sua message reminder moi sang tieng Viet sach cho luong gui moi, tranh noi dung mojibake cu.
+  - Trang `Cai dat` co them khu vuc `Zalo chung` de nhap `default_zalo_group_id` hoac `default_zalo_flow_code`.
+  - Cap nhat `backend/.env.example`, `render.yaml`, `docs/render-github-pages-deploy.md`.
+  - Them SQL tuy chon `supabase/run_this_update_zalo_settings.sql`.
+  - Da chay `node --check backend\src\zalo.js`, `node --check backend\src\reminders.js`, `node --check backend\src\server.js` pass.
+  - Da chay `npm.cmd run lint` pass.
+  - Da chay `npm.cmd run build` pass.
 
 ## Loi con lai / viec chua xong
 
@@ -305,6 +345,7 @@
 - Can chay SQL `supabase/run_this_update_project_avatar_inactive_review_cleanup.sql` tren Supabase de them avatar du an, inactive project, bo `review`, va sua default ID checklist.
 - Can chay SQL `supabase/run_this_update_recurring_permissions.sql` tren Supabase de them quyen task dinh ky va RLS cho nhan su tao/sua mau dinh ky hop le.
 - Can chay SQL `supabase/run_this_update_recurring_weekdays.sql` tren Supabase de them cot lich chay theo thu cho task dinh ky.
+- Co the chay SQL `supabase/run_this_update_zalo_settings.sql` tren Supabase de tao san 2 key Zalo chung; neu khong chay, app van tu tao key khi admin bam luu trong Cai dat.
 - Render service hien tai o My/Oregon khong tu doi sang Singapore sau khi sua `render.yaml`; can tao service moi tu Blueprint hoac Web Service moi voi region Singapore, copy env vars, test `/health`, roi doi `VITE_API_URL`.
 - Chua chuyen CRUD task sang Supabase direct; viec nay can audit/si chat RLS truoc de tranh lo data.
 - Cac luong da QA tinh/code review:
