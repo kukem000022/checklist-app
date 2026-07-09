@@ -331,6 +331,11 @@
   - Da chay `node --check backend\src\zalo.js`, `node --check backend\src\reminders.js`, `node --check backend\src\server.js` pass.
   - Da chay `npm.cmd run lint` pass.
   - Da chay `npm.cmd run build` pass.
+- Sau checkpoint mobile create task modal:
+  - Sua modal tao task tren dien thoai de khong bi bottom nav che nut `Tao task`.
+  - Modal mobile chua day cho bottom nav, gioi han chieu cao bang `100dvh`, form cuon noi bo va nut submit sticky trong sheet.
+  - File da sua: `frontend/src/styles.css`.
+  - Da chay `npm.cmd run build` pass.
 
 ## Loi con lai / viec chua xong
 
@@ -361,3 +366,13 @@
 - Sau moi fix: `npm.cmd run lint`, `node --check backend\src\server.js; node --check backend\src\reminders.js`, `npm.cmd run build`.
 - De cap nhat moi truong chinh ngoai sandbox: `powershell -ExecutionPolicy Bypass -File C:\Users\longhuynh\Documents\Codex\2026-06-24\m-nh\scripts\sync-to-main.ps1`.
 - Sau do vao `D:\Codex_Project` va chay lint/check/build.
+
+- Sau checkpoint safe glass style merge:
+  - Khong thay nguyen `styles.css` bang ban moi o D vi ban do thieu nhieu layout hien tai va co nguy co lam trang trong/vang UI.
+  - Da them font `Outfit` / `Plus Jakarta Sans` vao CSS hien tai.
+  - Da them lop glass an toan: gradient sheen, border/surface highlight, shadow mem cho panel/card/table/task.
+  - Da tat blur tren cac container cuon lon de tranh lag mobile; chi giu blur cho modal/drawer/topbar/bottom nav/sidebar.
+  - Da bo sung override dark/purple cho table head, permission row, role row, report bar, project info de han che cac mang trang con sot.
+  - File da sua: `frontend/src/styles.css`.
+  - Loi con lai: can QA bang mat tren GitHub Pages/local sau khi deploy vi sandbox khong mo duoc browser that.
+  - Da chay `npm.cmd run build` pass.
