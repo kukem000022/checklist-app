@@ -376,3 +376,34 @@
   - File da sua: `frontend/src/styles.css`.
   - Loi con lai: can QA bang mat tren GitHub Pages/local sau khi deploy vi sandbox khong mo duoc browser that.
   - Da chay `npm.cmd run build` pass.
+- Sau checkpoint chuan hoa typography Inter:
+  - Chuyen font frontend sang `Inter` va dung day weight 400/500/600/700.
+  - Them bien typography theo rule: Title 24/700, H1 20/700, H2 18/600, table/input/button 14px dung weight theo yeu cau.
+  - Them lop override cuoi file de giam cac title/card dang qua dam ve dung scale, giu tieng Viet de doc hon.
+  - File da sua: `frontend/src/styles.css`.
+  - Loi con lai: can user refresh hard cache tren GitHub Pages sau release de thay font moi.
+  - Da chay `npm.cmd run build` pass.
+## Checkpoint - fix mobile drawer, comments, task_members save flow
+
+### Đã làm
+- Đổi bình luận trong chi tiết task sang thứ tự mới nhất ở trên.
+- Tách tên người bình luận và thời gian bằng lớp `comment-meta` để không bị dính chữ.
+- Chỉnh tab lọc trên mobile thành một hàng cuộn ngang, giảm chiều cao để đỡ chiếm màn hình.
+- Chỉnh thanh Lưu/Đóng trong task drawer trên mobile luôn nằm gần đáy nhưng bớt khối nền nặng.
+- Sửa luồng lưu chi tiết task: chỉ gửi `member_ids` về backend khi danh sách thành viên xử lý thật sự thay đổi, tránh lỗi RLS `task_members` khi chỉ lưu checklist/note.
+- Bổ sung màu hiển thị ổn định cho input `datetime-local` trên mobile/dark mode.
+
+### File đã sửa
+- `frontend/src/main.jsx`
+- `frontend/src/styles.css`
+
+### Lỗi còn lại / cần kiểm tra
+- Cần test thật trên mobile: mở chi tiết task, kéo xuống cuối, kiểm tra nút `Đóng` và `Lưu thay đổi` có hiện không.
+- Nếu Supabase vẫn báo RLS `task_members`, chạy lại file SQL: `supabase/run_this_update_task_members_daily_rerun.sql`.
+
+### Lệnh cần chạy tiếp
+- `npm.cmd run build`
+
+### Kết quả kiểm tra
+- `node --check backend/src/server.js`: pass.
+- `npm.cmd run build`: pass.

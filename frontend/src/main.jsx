@@ -2519,6 +2519,9 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
   });
   const timeChanged = JSON.stringify(timeDraft) !== baselineTimes;
   const hasChanges = statusChanged || checklistChanged || membersChanged || timeChanged || Boolean(completionNote.trim());
+  const sortedComments = (comments || [])
+    .slice()
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   const activeProject = projects.find((project) => project.id === task.project_id);
   const projectMemberIds = new Set((activeProject?.project_members || []).map((item) => item.user_id));
   const projectMemberProfiles = task.project_id
@@ -2614,13 +2617,12 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
         const shouldComplete = window.confirm("Tất cả công việc nhỏ đã hoàn thành. Chuyển task này sang Hoàn thành luôn nhé?");
         if (shouldComplete) nextStatus = "done";
       }
-      await saveTaskDetail(task.id, {
+      const detailPayload = {
         task: {
           status: nextStatus,
           start_time: nextStartTime,
           due_time: parentDueValue,
         },
-        member_ids: memberIds,
         checklist: checklistDraft
           .filter((item) => item.deleted || item.title.trim())
           .map((item, index) => ({
@@ -2634,7 +2636,11 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
             deleted: item.deleted,
           })),
         completion_note: completionNote || null,
-      });
+      };
+      if (membersChanged) {
+        detailPayload.member_ids = memberIds;
+      }
+      await saveTaskDetail(task.id, detailPayload);
       setStatusDraft(nextStatus);
       setSaveState("saved");
       window.setTimeout(() => setSaveState((current) => (current === "saved" ? "idle" : current)), 2500);
@@ -2806,14 +2812,16 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
       <div className="drawer-section">
         <h3>Bình luận</h3>
         <div className="comment-list">
-          {comments.map((item) => (
+          {sortedComments.map((item) => (
             <article key={item.id}>
-              <strong>{personName(item.profiles)}</strong>
-              <span>{formatDate(item.created_at)}</span>
+              <div className="comment-meta">
+                <strong>{personName(item.profiles)}</strong>
+                <span>{formatDate(item.created_at)}</span>
+              </div>
               <p>{item.comment}</p>
             </article>
           ))}
-          {!comments.length && <p>Chưa có bình luận.</p>}
+          {!sortedComments.length && <p>Chưa có bình luận.</p>}
         </div>
         <form onSubmit={submitComment} className="comment-form">
           <input value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Viết cập nhật..." required />

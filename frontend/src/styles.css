@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
   color: #14201c;
@@ -6,8 +6,21 @@
     radial-gradient(circle at 20% 0%, rgba(40, 127, 108, 0.16), transparent 28%),
     radial-gradient(circle at 85% 18%, rgba(224, 185, 91, 0.16), transparent 26%),
     linear-gradient(135deg, #f7faf8 0%, #edf4f1 52%, #f9f7f1 100%);
-  --font-family: "Outfit", "Plus Jakarta Sans", Geist, "SF Pro Display", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family: "Inter", "SF Pro Display", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --type-title-size: 24px;
+  --type-title-weight: 700;
+  --type-h1-size: 20px;
+  --type-h1-weight: 700;
+  --type-h2-size: 18px;
+  --type-h2-weight: 600;
+  --type-table-size: 14px;
+  --type-table-head-weight: 600;
+  --type-table-body-weight: 400;
+  --type-input-size: 14px;
+  --type-input-weight: 400;
+  --type-button-size: 14px;
+  --type-button-weight: 600;
   font-family: var(--font-family);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -3224,6 +3237,18 @@ progress {
   padding: 10px;
 }
 
+.comment-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.comment-meta span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .comment-list p {
   margin-bottom: 0;
 }
@@ -5827,4 +5852,208 @@ body {
     var(--glass-sheen);
   color: #f4f0ff;
   border-color: rgba(167, 139, 250, 0.2);
+}
+
+/* Typography standard: Inter with the agreed product scale. */
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-family);
+}
+
+.topbar h1,
+.page-title,
+.modal-panel > h2:first-child,
+.drawer > h2:first-child,
+.login-panel h1 {
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+h1,
+.section-head h2,
+.project-board-toolbar h2,
+.task-board-title,
+.panel-title {
+  font-size: var(--type-h1-size);
+  font-weight: var(--type-h1-weight);
+  line-height: 1.24;
+  letter-spacing: 0;
+}
+
+h2,
+h3,
+.card-title,
+.modal-section-title,
+.drawer-section-title,
+.project-task-group > header h3,
+.project-list-group > header h3,
+.tasklist-column h3,
+.daily-template-card strong,
+.role-list-item strong,
+.project-row-select strong,
+.people-row-select strong {
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+input,
+select,
+textarea,
+.search-box input,
+.command-search input,
+.comment-form input,
+.checklist-title-row input[type="text"],
+.checklist-title-row input:not([type]),
+.checklist-item-editor textarea,
+.completion-note-field textarea {
+  font-size: var(--type-input-size);
+  font-weight: var(--type-input-weight);
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+button,
+.icon-button,
+.file-button,
+.sidebar-nav button,
+.tabs button,
+.view-toggle button,
+.task-tabs button,
+.compact-filter-tabs button,
+.icon-view-toggle button,
+.add-card-form button,
+.weekday-picker button {
+  font-size: var(--type-button-size);
+  font-weight: var(--type-button-weight);
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.data-table,
+.table-row,
+.project-directory-table .table-row,
+.people-directory-table .table-row,
+.task-table .table-row,
+.premium-task-table .table-row,
+.grouped-task-table .table-row {
+  font-size: var(--type-table-size);
+  font-weight: var(--type-table-body-weight);
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.table-head,
+.data-table .table-head,
+.project-directory-table .table-head,
+.people-directory-table .table-head,
+.task-table .table-head,
+.premium-task-table .table-head,
+.permission-table .table-head,
+.project-table .table-head,
+.notification-table .table-head {
+  font-size: var(--type-table-size);
+  font-weight: var(--type-table-head-weight);
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.table-row strong,
+.data-table strong,
+.project-directory-table strong,
+.people-directory-table strong {
+  font-weight: 500;
+}
+
+.kanban-card h4,
+.kanban-card strong,
+.task-line strong,
+.task-card-title,
+.comment-list article strong,
+.checklist-title-row input[type="text"],
+.checklist-title-row input:not([type]) {
+  font-weight: 600;
+}
+
+input[type="datetime-local"] {
+  color: var(--text);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] input[type="datetime-local"] {
+  color-scheme: light;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --type-title-size: 22px;
+    --type-h1-size: 19px;
+    --type-h2-size: 17px;
+  }
+
+  .task-tabs button,
+  .compact-filter-tabs button,
+  .view-toggle button,
+  .icon-view-toggle button {
+    font-size: 12px;
+  }
+
+  .task-tabs,
+  .compact-filter-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 6px;
+    scrollbar-width: none;
+  }
+
+  .task-tabs::-webkit-scrollbar,
+  .compact-filter-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .task-tabs button,
+  .compact-filter-tabs button {
+    flex: 0 0 auto;
+    min-height: 30px;
+    padding: 6px 10px;
+    line-height: 1;
+  }
+
+  .drawer {
+    padding-bottom: calc(116px + env(safe-area-inset-bottom));
+  }
+
+  .drawer-savebar {
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    padding: 8px 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(7, 31, 25, 0.72) 42%, rgba(7, 31, 25, 0.86) 100%);
+    box-shadow: none;
+  }
+
+  :root[data-theme="light"] .drawer-savebar {
+    background: linear-gradient(180deg, transparent 0%, rgba(247, 252, 250, 0.74) 42%, rgba(247, 252, 250, 0.9) 100%);
+  }
+
+  .drawer-save-actions {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .drawer-close-action {
+    width: 46px;
+    min-width: 46px;
+    padding: 0;
+  }
+
+  .drawer-close-action {
+    font-size: 0;
+  }
 }
