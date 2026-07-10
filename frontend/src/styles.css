@@ -6057,3 +6057,41 @@ input[type="datetime-local"] {
     font-size: 0;
   }
 }
+
+/* QA layout fix: keep status filters compact on desktop and remove them on mobile. */
+.board-command-panel .compact-filter-tabs {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.board-command-panel .compact-filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.board-command-panel .compact-filter-tabs button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .board-command-panel .compact-filter-tabs {
+    display: none !important;
+  }
+
+  .board-command-panel {
+    gap: 8px;
+  }
+
+  .board-command-top {
+    align-items: center;
+  }
+}

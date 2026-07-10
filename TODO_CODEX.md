@@ -407,3 +407,20 @@
 ### Kết quả kiểm tra
 - `node --check backend/src/server.js`: pass.
 - `npm.cmd run build`: pass.
+## Checkpoint - fix task status filter layout
+
+### Da lam
+- Giu cum tab trang thai trong `Task cua toi` tren desktop thanh mot hang, khong de nut `Da huy` bi rot xuong dong rieng.
+- An cum tab trang thai tren mobile de khung bang task rong hon va khong bi thu hep chieu cao.
+
+### File da sua
+- `frontend/src/styles.css`
+
+### Loi con lai / can kiem tra
+- Can user refresh trang local/deploy va xem lai tren dien thoai that vi sandbox khong mo duoc Chrome mobile.
+
+### Lenh can chay tiep
+- `npm.cmd run build`
+
+### Ket qua kiem tra
+- `npm.cmd run build`: pass.
