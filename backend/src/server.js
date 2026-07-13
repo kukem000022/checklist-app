@@ -160,6 +160,27 @@ function telegramMention(profile) {
   return name;
 }
 
+function zaloPersonName(profile) {
+  return profile?.zalo_display_name || profile?.full_name || profile?.email || "Nhân sự";
+}
+
+function zaloMentionText(profile) {
+  return profile?.zalo_user_id ? `@${zaloPersonName(profile)}` : zaloPersonName(profile);
+}
+
+function buildZaloMentions(recipients = []) {
+  const seen = new Set();
+  return recipients
+    .map((profile) => {
+      const userId = String(profile?.zalo_user_id || "").trim();
+      const name = String(profile?.zalo_display_name || profile?.full_name || profile?.email || "").trim();
+      if (!userId || !name || seen.has(userId)) return null;
+      seen.add(userId);
+      return { userId, name };
+    })
+    .filter(Boolean);
+}
+
 function buildTaskTelegramMessage(type, task, project, recipients = []) {
   const title = type === "new_task" ? "✅ TASK MỚI" : "⚠️ TASK QUÁ HẠN";
   const projectName = escapeTelegramHtml(project?.name || "Cá nhân");
@@ -183,7 +204,7 @@ function buildTaskZaloMessage(type, task, project, recipients = []) {
   const title = type === "new_task" ? "✅ TASK MỚI" : "⚠️ TASK QUÁ HẠN";
   const projectName = project?.name || "Cá nhân";
   const recipientText = recipients.length
-    ? recipients.map((recipient) => recipient?.full_name || recipient?.email || "Nhân sự").join(", ")
+    ? recipients.map(zaloMentionText).join(", ")
     : "Chưa rõ";
   return [
     title,
@@ -284,6 +305,8 @@ app.patch("/api/me", async (req, res, next) => {
         full_name: z.string().min(1).optional(),
         department: z.string().nullable().optional(),
         telegram_chat_id: z.string().nullable().optional(),
+        zalo_user_id: z.string().nullable().optional(),
+        zalo_display_name: z.string().nullable().optional(),
         avatar_url: z.string().url().nullable().optional(),
         avatar_path: z.string().nullable().optional(),
       })
@@ -348,7 +371,7 @@ app.get("/api/profiles", async (req, res, next) => {
   try {
     const { data, error } = await req.db
       .from("profiles")
-      .select("id, full_name, email, role, department, telegram_chat_id, avatar_url, avatar_path, status")
+      .select("id, full_name, email, role, department, telegram_chat_id, zalo_user_id, zalo_display_name, avatar_url, avatar_path, status")
       .order("full_name");
 
     if (error) throw error;
@@ -367,7 +390,7 @@ app.get("/api/profiles/summary", async (req, res, next) => {
 
     const { data: profiles, error: profileError } = await req.db
       .from("profiles")
-      .select("id, full_name, email, role, department, telegram_chat_id, avatar_url, avatar_path, status")
+      .select("id, full_name, email, role, department, telegram_chat_id, zalo_user_id, zalo_display_name, avatar_url, avatar_path, status")
       .order("full_name");
 
     if (profileError) throw profileError;
@@ -420,6 +443,9 @@ app.post("/api/profiles", async (req, res, next) => {
         password: z.string().min(6),
         full_name: z.string().min(1),
         department: z.string().nullable().optional(),
+        telegram_chat_id: z.string().nullable().optional(),
+        zalo_user_id: z.string().nullable().optional(),
+        zalo_display_name: z.string().nullable().optional(),
         role: z.enum(["admin", "manager", "staff"]).default("staff"),
         role_ids: z.array(z.string().min(1)).optional(),
         status: z.enum(["active", "inactive", "locked"]).default("active"),
@@ -446,10 +472,13 @@ app.post("/api/profiles", async (req, res, next) => {
         email: body.email,
         full_name: body.full_name,
         department: body.department || null,
+        telegram_chat_id: body.telegram_chat_id || null,
+        zalo_user_id: body.zalo_user_id || null,
+        zalo_display_name: body.zalo_display_name || null,
         role: primaryRole(roleIds),
         status: body.status,
       })
-      .select("id, full_name, email, role, department, telegram_chat_id, avatar_url, avatar_path, status")
+      .select("id, full_name, email, role, department, telegram_chat_id, zalo_user_id, zalo_display_name, avatar_url, avatar_path, status")
       .single();
 
     if (error) throw error;
@@ -472,6 +501,8 @@ app.patch("/api/profiles/:userId", async (req, res, next) => {
         full_name: z.string().optional(),
         department: z.string().nullable().optional(),
         telegram_chat_id: z.string().nullable().optional(),
+        zalo_user_id: z.string().nullable().optional(),
+        zalo_display_name: z.string().nullable().optional(),
         avatar_url: z.string().url().nullable().optional(),
         avatar_path: z.string().nullable().optional(),
         role: z.enum(["admin", "manager", "staff"]).optional(),
@@ -496,7 +527,7 @@ app.patch("/api/profiles/:userId", async (req, res, next) => {
       .from("profiles")
       .update(profilePatch)
       .eq("id", req.params.userId)
-      .select("id, full_name, email, role, department, telegram_chat_id, avatar_url, avatar_path, status")
+      .select("id, full_name, email, role, department, telegram_chat_id, zalo_user_id, zalo_display_name, avatar_url, avatar_path, status")
       .single();
 
     if (error) throw error;
@@ -1050,14 +1081,14 @@ app.post("/api/tasks", async (req, res, next) => {
 
     const { data: assignee } = await admin
       .from("profiles")
-      .select("full_name, email, telegram_chat_id")
+      .select("full_name, email, telegram_chat_id, zalo_user_id, zalo_display_name")
       .eq("id", assigneeId)
       .maybeSingle();
 
     const { data: taskMembers } = normalizedMemberIds.length
       ? await admin
           .from("profiles")
-          .select("id, full_name, email, telegram_chat_id")
+          .select("id, full_name, email, telegram_chat_id, zalo_user_id, zalo_display_name")
           .in("id", normalizedMemberIds)
       : { data: [] };
 
@@ -1088,6 +1119,7 @@ app.post("/api/tasks", async (req, res, next) => {
         ? await sendZaloPush({
             ...defaultZaloTarget,
             message: buildTaskZaloMessage("new_task", task, project, recipients),
+            mentions: buildZaloMentions(recipients),
           })
         : null;
       const status = [telegramResult, zaloResult].filter(Boolean).some((result) => result.ok)

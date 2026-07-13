@@ -53,6 +53,27 @@ function personMention(profile) {
   return name;
 }
 
+function zaloPersonName(profile) {
+  return profile?.zalo_display_name || personLabel(profile);
+}
+
+function zaloMentionText(profile) {
+  return profile?.zalo_user_id ? `@${zaloPersonName(profile)}` : zaloPersonName(profile);
+}
+
+function buildZaloMentions(recipients = []) {
+  const seen = new Set();
+  return recipients
+    .map((profile) => {
+      const userId = String(profile?.zalo_user_id || "").trim();
+      const name = String(profile?.zalo_display_name || profile?.full_name || profile?.email || "").trim();
+      if (!userId || !name || seen.has(userId)) return null;
+      seen.add(userId);
+      return { userId, name };
+    })
+    .filter(Boolean);
+}
+
 function taskRecipients(task) {
   const recipients = new Map();
   if (task.assignee?.id) {
@@ -105,7 +126,7 @@ function buildTelegramReminderMessage(type, task, recipients = []) {
 
 function buildZaloReminderMessage(type, task, recipients = []) {
   const projectName = task.projects?.name || "Cá nhân";
-  const assignee = recipients.length ? recipients.map(personLabel).join(", ") : personLabel(task.assignee);
+  const assignee = recipients.length ? recipients.map(zaloMentionText).join(", ") : zaloMentionText(task.assignee);
   const title = type === "overdue" ? "⚠️ TASK QUÁ HẠN" : "⏰ TASK SẮP TỚI HẠN";
 
   return [
@@ -250,7 +271,11 @@ async function sendReminder(type, task, recipients, groupChatId, zaloTarget) {
       ? await sendTelegramMessage(groupChatId, buildTelegramReminderMessage(type, task, pendingRecipients))
       : null;
     const zaloResult = zaloTarget
-      ? await sendZaloPush({ ...zaloTarget, message: buildZaloReminderMessage(type, task, pendingRecipients) })
+      ? await sendZaloPush({
+          ...zaloTarget,
+          message: buildZaloReminderMessage(type, task, pendingRecipients),
+          mentions: buildZaloMentions(pendingRecipients),
+        })
       : null;
     const status = notificationStatus(telegramResult, zaloResult);
     for (const recipient of pendingRecipients) {
@@ -472,8 +497,8 @@ export async function runReminderSweep() {
     .select(`
       *,
       projects(name, manager_id, telegram_group_chat_id),
-      assignee:profiles!tasks_assignee_id_fkey(id, full_name, email, telegram_chat_id),
-      task_members(user_id, profiles(id, full_name, email, telegram_chat_id))
+      assignee:profiles!tasks_assignee_id_fkey(id, full_name, email, telegram_chat_id, zalo_user_id, zalo_display_name),
+      task_members(user_id, profiles(id, full_name, email, telegram_chat_id, zalo_user_id, zalo_display_name))
     `)
     .not("due_time", "is", null)
     .not("status", "in", '("done","cancelled")')
@@ -508,7 +533,7 @@ export async function runReminderSweep() {
       ) {
         const { data: manager } = await admin
           .from("profiles")
-          .select("id, full_name, email, telegram_chat_id")
+          .select("id, full_name, email, telegram_chat_id, zalo_user_id, zalo_display_name")
           .eq("id", task.projects.manager_id)
           .maybeSingle();
 

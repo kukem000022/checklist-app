@@ -7,6 +7,8 @@ create table if not exists public.profiles (
   role text not null default 'staff' check (role in ('admin', 'manager', 'staff')),
   department text,
   telegram_chat_id text,
+  zalo_user_id text,
+  zalo_display_name text,
   avatar_url text,
   avatar_path text,
   status text not null default 'active' check (status in ('active', 'inactive', 'locked')),

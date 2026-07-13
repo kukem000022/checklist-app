@@ -1,8 +1,14 @@
 import { config } from "./config.js";
 
-export async function sendZaloPush({ groupId, flowCode, message }) {
+export async function sendZaloPush({ groupId, flowCode, message, mentions = [] }) {
   const targetGroupId = String(groupId || "").trim();
   const targetFlowCode = String(flowCode || "").trim();
+  const normalizedMentions = (Array.isArray(mentions) ? mentions : [])
+    .map((mention) => ({
+      userId: String(mention?.userId || mention?.id || mention?.zalo_user_id || "").trim(),
+      name: String(mention?.name || mention?.displayName || mention?.zalo_display_name || "").trim(),
+    }))
+    .filter((mention) => mention.userId && mention.name);
 
   if (!config.zaloPushUrl) {
     return { ok: false, skipped: true, description: "Missing ZALO_PUSH_URL" };
@@ -25,6 +31,7 @@ export async function sendZaloPush({ groupId, flowCode, message }) {
     body: JSON.stringify({
       ...(targetGroupId ? { groupId: targetGroupId } : { flowCode: targetFlowCode }),
       message,
+      ...(normalizedMentions.length ? { mentions: normalizedMentions } : {}),
     }),
   });
 

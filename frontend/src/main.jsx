@@ -1197,6 +1197,8 @@ function PeoplePage({ profiles, roles, openModal, updateUser }) {
       full_name: selectedProfile.full_name || "",
       department: selectedProfile.department || "",
       telegram_chat_id: selectedProfile.telegram_chat_id || "",
+      zalo_user_id: selectedProfile.zalo_user_id || "",
+      zalo_display_name: selectedProfile.zalo_display_name || "",
       status: selectedProfile.status || "active",
       role_ids: selectedProfile.role_ids?.length ? selectedProfile.role_ids : [selectedProfile.role || "staff"],
       password: "",
@@ -1222,6 +1224,8 @@ function PeoplePage({ profiles, roles, openModal, updateUser }) {
         full_name: draft.full_name,
         department: draft.department || null,
         telegram_chat_id: draft.telegram_chat_id || null,
+        zalo_user_id: draft.zalo_user_id || null,
+        zalo_display_name: draft.zalo_display_name || null,
         status: draft.status,
         role_ids: draft.role_ids,
         ...(draft.password ? { password: draft.password } : {}),
@@ -1320,6 +1324,14 @@ function PeoplePage({ profiles, roles, openModal, updateUser }) {
               <label>
                 Telegram chat ID
                 <input value={draft.telegram_chat_id} onChange={(event) => setDraft({ ...draft, telegram_chat_id: event.target.value })} />
+              </label>
+              <label>
+                Zalo user ID
+                <input value={draft.zalo_user_id} onChange={(event) => setDraft({ ...draft, zalo_user_id: event.target.value })} placeholder="ID Zalo để tag trong group" />
+              </label>
+              <label>
+                Tên tag Zalo
+                <input value={draft.zalo_display_name} onChange={(event) => setDraft({ ...draft, zalo_display_name: event.target.value })} placeholder="Ví dụ: Thành Nợn" />
               </label>
               <label>
                 Trạng thái
@@ -2123,6 +2135,8 @@ function SettingsPage({ profile, onSaved }) {
     full_name: profile?.full_name || "",
     department: profile?.department || "",
     telegram_chat_id: profile?.telegram_chat_id || "",
+    zalo_user_id: profile?.zalo_user_id || "",
+    zalo_display_name: profile?.zalo_display_name || "",
     avatar_url: profile?.avatar_url || "",
     avatar_path: profile?.avatar_path || "",
   });
@@ -2147,6 +2161,8 @@ function SettingsPage({ profile, onSaved }) {
       full_name: profile?.full_name || "",
       department: profile?.department || "",
       telegram_chat_id: profile?.telegram_chat_id || "",
+      zalo_user_id: profile?.zalo_user_id || "",
+      zalo_display_name: profile?.zalo_display_name || "",
       avatar_url: profile?.avatar_url || "",
       avatar_path: profile?.avatar_path || "",
     });
@@ -2233,6 +2249,8 @@ function SettingsPage({ profile, onSaved }) {
           full_name: form.full_name,
           department: form.department || null,
           telegram_chat_id: form.telegram_chat_id || null,
+          zalo_user_id: form.zalo_user_id || null,
+          zalo_display_name: form.zalo_display_name || null,
           avatar_url: avatarPayload.avatar_url,
           avatar_path: avatarPayload.avatar_path,
         }),
@@ -2323,7 +2341,7 @@ function SettingsPage({ profile, onSaved }) {
         <div className="section-head">
           <div>
             <h2>Hồ sơ cá nhân</h2>
-            <p>Cập nhật thông tin và Telegram chat ID.</p>
+            <p>Cập nhật thông tin, Telegram chat ID và Zalo tag.</p>
           </div>
         </div>
         <form onSubmit={saveProfile} className="stack-form">
@@ -2353,6 +2371,8 @@ function SettingsPage({ profile, onSaved }) {
           <label>Họ tên<input value={form.full_name} onChange={(event) => setForm({ ...form, full_name: event.target.value })} /></label>
           <label>Bộ phận<input value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} /></label>
           <label>Telegram chat ID<input value={form.telegram_chat_id} onChange={(event) => setForm({ ...form, telegram_chat_id: event.target.value })} /></label>
+          <label>Zalo user ID<input value={form.zalo_user_id} onChange={(event) => setForm({ ...form, zalo_user_id: event.target.value })} placeholder="ID Zalo để bot tag trong group" /></label>
+          <label>Tên tag Zalo<input value={form.zalo_display_name} onChange={(event) => setForm({ ...form, zalo_display_name: event.target.value })} placeholder="Tên hiển thị khi tag Zalo" /></label>
           <button className="secondary-action" type="button" onClick={loadTelegramChatIds} disabled={loadingTelegramChats}>
             {loadingTelegramChats ? <LoaderCircle size={17} className="spin-icon" /> : <Send size={17} />}
             {loadingTelegramChats ? "Đang lấy chat ID" : "Lấy chat ID từ bot"}

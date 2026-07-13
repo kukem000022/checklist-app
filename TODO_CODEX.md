@@ -424,3 +424,31 @@
 
 ### Ket qua kiem tra
 - `npm.cmd run build`: pass.
+
+## Checkpoint - Zalo mention profile mapping
+
+### Da lam
+- Them truong Zalo cho ho so nhan su: `zalo_user_id`, `zalo_display_name`.
+- API nhan su/ho so ca nhan doc va luu duoc 2 truong Zalo moi.
+- Zalo push khi tao task va reminder se gui them `mentions` gom `{ userId, name }` neu nhan su da co Zalo user ID.
+- Noi dung Zalo hien thi ten nhan su dang `@Ten Zalo` khi co Zalo user ID, fallback ve ten/email neu chua map.
+- Tao file SQL update rieng cho Supabase production.
+
+### File da sua
+- `backend/src/zalo.js`
+- `backend/src/server.js`
+- `backend/src/reminders.js`
+- `frontend/src/main.jsx`
+- `supabase/schema.sql`
+- `supabase/run_this_update_zalo_profile_mentions.sql`
+- `TODO_CODEX.md`
+
+### Loi con lai / can kiem tra
+- Can chay SQL `supabase/run_this_update_zalo_profile_mentions.sql` tren Supabase truoc khi luu Zalo user ID.
+- Can test that voi bot Zalo sau khi dien dung Zalo user ID cho nhan su; neu bot dung ten field khac `mentions` thi can map lai theo spec bot.
+
+### Lenh can chay tiep
+- Da pass: `node --check backend\src\zalo.js`
+- Da pass: `node --check backend\src\server.js`
+- Da pass: `node --check backend\src\reminders.js`
+- Da pass: `npm.cmd run build`
