@@ -452,3 +452,30 @@
 - Da pass: `node --check backend\src\server.js`
 - Da pass: `node --check backend\src\reminders.js`
 - Da pass: `npm.cmd run build`
+
+## Checkpoint - deadline/status change notifications
+
+### Da lam
+- Backend bat buoc nhap ly do khi doi deadline task.
+- Ly do doi deadline duoc luu thanh binh luan cua task.
+- Backend gui thong bao Telegram va Zalo khi doi deadline, khi task chuyen sang Hoan thanh, hoac khi task chuyen sang Da huy.
+- Thong bao dung group Telegram cua du an, fallback ve group Telegram chung neu du an chua cau hinh.
+- Thong bao Zalo dung cau hinh push chung va kem mentions theo Zalo user ID cua nhan su neu da map.
+- Frontend hien o "Ly do thay doi deadline" khi deadline bi thay doi va chan luu neu chua nhap ly do.
+
+### File da sua
+- `backend/src/server.js`
+- `frontend/src/main.jsx`
+- `TODO_CODEX.md`
+
+### Loi con lai / can kiem tra
+- Can test that: doi deadline tren task co nhan su da map Telegram/Zalo, xem binh luan moi va thong bao tren group.
+- Can test that: doi trang thai sang Hoan thanh/Da huy, xem Telegram/Zalo co nhan thong bao dung noi dung khong.
+
+### Lenh can chay tiep
+- Da pass: `node --check backend\src\server.js`
+- Da pass: `npm.cmd run build`
+
+### Ket qua kiem tra
+- Backend syntax check pass.
+- Frontend production build pass.

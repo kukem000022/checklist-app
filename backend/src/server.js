@@ -219,6 +219,132 @@ function buildTaskZaloMessage(type, task, project, recipients = []) {
   ].filter(Boolean).join("\n");
 }
 
+const TASK_CHANGE_TITLES = {
+  deadline_changed: "🕒 ĐỔI DEADLINE",
+  status_done: "✅ TASK HOÀN THÀNH",
+  status_cancelled: "🛑 TASK ĐÃ HỦY",
+};
+
+function deadlineValuesDiffer(previousValue, nextValue) {
+  const previousTime = previousValue ? new Date(previousValue).getTime() : null;
+  const nextTime = nextValue ? new Date(nextValue).getTime() : null;
+  return previousTime !== nextTime;
+}
+
+function buildTaskChangeTelegramMessage(type, task, project, recipients = [], detail = {}) {
+  const title = TASK_CHANGE_TITLES[type] || "🔔 CẬP NHẬT TASK";
+  const projectName = escapeTelegramHtml(project?.name || "Cá nhân");
+  const recipientText = recipients.length
+    ? recipients.map(telegramMention).join(", ")
+    : "Chưa rõ";
+  const lines = [
+    `<b>${title}</b>`,
+    `• <b>Dự án:</b> ${projectName}`,
+    `• <b>Nhân sự:</b> ${recipientText}`,
+    `• <b>Task:</b> ${escapeTelegramHtml(task.title)}`,
+  ];
+
+  if (type === "deadline_changed") {
+    lines.push(
+      `• <b>Deadline cũ:</b> ${formatTelegramDate(detail.previousDueTime)}`,
+      `• <b>Deadline mới:</b> ${formatTelegramDate(detail.nextDueTime)}`,
+      `• <b>Lý do:</b> ${escapeTelegramHtml(detail.note || "Chưa ghi chú")}`,
+    );
+  } else {
+    if (task.due_time) lines.push(`• <b>Deadline:</b> ${formatTelegramDate(task.due_time)}`);
+    lines.push(`• <b>Trạng thái:</b> ${TASK_STATUS_LABELS[task.status] || task.status || "Chưa bắt đầu"}`);
+    if (detail.note) lines.push(`• <b>Ghi chú:</b> ${escapeTelegramHtml(detail.note)}`);
+  }
+
+  lines.push("Vui lòng kiểm tra cập nhật mới trong hệ thống.");
+  return lines.filter(Boolean).join("\n");
+}
+
+function buildTaskChangeZaloMessage(type, task, project, recipients = [], detail = {}) {
+  const title = TASK_CHANGE_TITLES[type] || "🔔 CẬP NHẬT TASK";
+  const projectName = project?.name || "Cá nhân";
+  const recipientText = recipients.length
+    ? recipients.map(zaloMentionText).join(", ")
+    : "Chưa rõ";
+  const lines = [
+    title,
+    `• Dự án: ${projectName}`,
+    `• Nhân sự: ${recipientText}`,
+    `• Task: ${task.title}`,
+  ];
+
+  if (type === "deadline_changed") {
+    lines.push(
+      `• Deadline cũ: ${formatTelegramDate(detail.previousDueTime)}`,
+      `• Deadline mới: ${formatTelegramDate(detail.nextDueTime)}`,
+      `• Lý do: ${detail.note || "Chưa ghi chú"}`,
+    );
+  } else {
+    if (task.due_time) lines.push(`• Deadline: ${formatTelegramDate(task.due_time)}`);
+    lines.push(`• Trạng thái: ${TASK_STATUS_LABELS[task.status] || task.status || "Chưa bắt đầu"}`);
+    if (detail.note) lines.push(`• Ghi chú: ${detail.note}`);
+  }
+
+  lines.push("Vui lòng kiểm tra cập nhật mới trong hệ thống.");
+  return lines.filter(Boolean).join("\n");
+}
+
+async function safeNotify(operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    console.error("Task notification channel failed", error);
+    return { ok: false, error: error.message };
+  }
+}
+
+async function notifyTaskUpdate({ task, project, recipients = [], type, detail = {} }) {
+  const normalizedRecipients = recipients.filter((recipient) => recipient?.id);
+  const [defaultGroupChatId, defaultZaloTarget] = await Promise.all([
+    getAppSetting("default_telegram_group_chat_id"),
+    getDefaultZaloTarget(),
+  ]);
+  const targetGroupChatId = project?.telegram_group_chat_id || defaultGroupChatId;
+  const results = [];
+
+  if (targetGroupChatId) {
+    results.push(await safeNotify(() => sendTelegramMessage(
+      targetGroupChatId,
+      buildTaskChangeTelegramMessage(type, task, project, normalizedRecipients, detail),
+    )));
+  }
+
+  if (defaultZaloTarget) {
+    results.push(await safeNotify(() => sendZaloPush({
+      ...defaultZaloTarget,
+      message: buildTaskChangeZaloMessage(type, task, project, normalizedRecipients, detail),
+      mentions: buildZaloMentions(normalizedRecipients),
+    })));
+  }
+
+  if (!targetGroupChatId && !defaultZaloTarget) {
+    for (const recipient of normalizedRecipients) {
+      if (!recipient.telegram_chat_id) continue;
+      results.push(await safeNotify(() => sendTelegramMessage(
+        recipient.telegram_chat_id,
+        buildTaskChangeTelegramMessage(type, task, project, [recipient], detail),
+      )));
+    }
+  }
+
+  if (normalizedRecipients.length) {
+    const status = results.some((result) => result?.ok) ? "sent" : "skipped";
+    await admin.from("task_notifications").insert(
+      normalizedRecipients.map((recipient) => ({
+        task_id: task.id,
+        user_id: recipient.id,
+        type,
+        status,
+      })),
+    );
+  }
+}
+
 async function getDefaultZaloTarget() {
   const [groupId, flowCode] = await Promise.all([
     getAppSetting("default_zalo_group_id"),
@@ -1244,6 +1370,7 @@ app.patch("/api/tasks/:taskId/detail", async (req, res, next) => {
           )
           .default([]),
         completion_note: z.string().nullable().optional(),
+        deadline_change_note: z.string().nullable().optional(),
       })
       .parse(req.body);
 
@@ -1253,11 +1380,25 @@ app.patch("/api/tasks/:taskId/detail", async (req, res, next) => {
 
     const { data: currentTask, error: taskFetchError } = await req.db
       .from("tasks")
-      .select("id, project_id, due_time, status")
+      .select("id, title, project_id, assignee_id, due_time, status")
       .eq("id", req.params.taskId)
       .single();
 
     if (taskFetchError) throw taskFetchError;
+
+    const dueTimeProvided = Object.prototype.hasOwnProperty.call(body.task, "due_time");
+    const nextDueTime = dueTimeProvided ? body.task.due_time : currentTask.due_time;
+    const deadlineChanged = dueTimeProvided && deadlineValuesDiffer(currentTask.due_time, nextDueTime);
+    if (deadlineChanged && !body.deadline_change_note?.trim()) {
+      return res.status(400).json({ error: "Vui lòng nhập lý do thay đổi deadline." });
+    }
+
+    const statusChanged = body.task.status && body.task.status !== currentTask.status;
+    const statusNotificationType = statusChanged && body.task.status === "done"
+      ? "status_done"
+      : statusChanged && body.task.status === "cancelled"
+        ? "status_cancelled"
+        : null;
 
     if (body.task.assignee_id && currentTask.project_id) {
       await assertTaskMemberIds(currentTask.project_id, [body.task.assignee_id]);
@@ -1270,7 +1411,7 @@ app.patch("/api/tasks/:taskId/detail", async (req, res, next) => {
       await assertTaskMemberIds(currentTask.project_id, checklistAssigneeIds);
     }
 
-    const parentDue = body.task.due_time ?? currentTask.due_time;
+    const parentDue = nextDueTime;
     if (parentDue) {
       const parentDueTime = new Date(parentDue).getTime();
       const invalidChild = body.checklist.find(
@@ -1378,6 +1519,85 @@ app.patch("/api/tasks/:taskId/detail", async (req, res, next) => {
       });
 
       if (noteError) throw noteError;
+    }
+
+    if (deadlineChanged) {
+      const { error: deadlineNoteError } = await req.db.from("task_comments").insert({
+        task_id: req.params.taskId,
+        user_id: req.user.id,
+        comment: [
+          `Đổi deadline từ ${formatTelegramDate(currentTask.due_time)} sang ${formatTelegramDate(nextDueTime)}.`,
+          `Lý do: ${body.deadline_change_note.trim()}`,
+        ].join(" "),
+      });
+
+      if (deadlineNoteError) throw deadlineNoteError;
+    }
+
+    if (deadlineChanged || statusNotificationType) {
+      try {
+        const { data: updatedTask } = await admin
+          .from("tasks")
+          .select("id, title, project_id, assignee_id, due_time, status")
+          .eq("id", req.params.taskId)
+          .maybeSingle();
+        const taskForNotice = updatedTask || {
+          ...currentTask,
+          ...taskPatch,
+          due_time: nextDueTime,
+        };
+        const { data: projectForNotice } = taskForNotice.project_id
+          ? await admin
+            .from("projects")
+            .select("name, telegram_group_chat_id")
+            .eq("id", taskForNotice.project_id)
+            .maybeSingle()
+          : { data: null };
+        const { data: taskMembers } = await admin
+          .from("task_members")
+          .select("user_id")
+          .eq("task_id", req.params.taskId);
+        const recipientIds = [
+          ...new Set([
+            taskForNotice.assignee_id,
+            ...(taskMembers || []).map((member) => member.user_id),
+          ].filter(Boolean)),
+        ];
+        const { data: recipients } = recipientIds.length
+          ? await admin
+            .from("profiles")
+            .select("id, full_name, email, telegram_chat_id, zalo_user_id, zalo_display_name")
+            .in("id", recipientIds)
+          : { data: [] };
+
+        if (deadlineChanged) {
+          await notifyTaskUpdate({
+            task: taskForNotice,
+            project: projectForNotice,
+            recipients: recipients || [],
+            type: "deadline_changed",
+            detail: {
+              previousDueTime: currentTask.due_time,
+              nextDueTime,
+              note: body.deadline_change_note.trim(),
+            },
+          });
+        }
+
+        if (statusNotificationType) {
+          await notifyTaskUpdate({
+            task: taskForNotice,
+            project: projectForNotice,
+            recipients: recipients || [],
+            type: statusNotificationType,
+            detail: {
+              note: body.completion_note?.trim() || "",
+            },
+          });
+        }
+      } catch (notifyError) {
+        console.error("Task update notification failed", notifyError);
+      }
     }
 
     const { count: checklistCount, error: countError } = await req.db

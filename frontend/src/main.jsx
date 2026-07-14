@@ -2478,6 +2478,7 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
   const [checklistDraft, setChecklistDraft] = useState([]);
   const [memberIds, setMemberIds] = useState([]);
   const [completionNote, setCompletionNote] = useState("");
+  const [deadlineChangeNote, setDeadlineChangeNote] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState("idle");
@@ -2507,6 +2508,7 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
     );
     setMemberIds((task.task_members || []).map((item) => item.user_id));
     setCompletionNote("");
+    setDeadlineChangeNote("");
     setMessage("");
     setSaveState("idle");
     setChecklistPopover(null);
@@ -2538,7 +2540,13 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
     due_time: toLocalInputValue(task.due_time),
   });
   const timeChanged = JSON.stringify(timeDraft) !== baselineTimes;
-  const hasChanges = statusChanged || checklistChanged || membersChanged || timeChanged || Boolean(completionNote.trim());
+  const deadlineChanged = toLocalInputValue(task.due_time) !== timeDraft.due_time;
+  const hasChanges = statusChanged
+    || checklistChanged
+    || membersChanged
+    || timeChanged
+    || Boolean(completionNote.trim())
+    || (deadlineChanged && Boolean(deadlineChangeNote.trim()));
   const sortedComments = (comments || [])
     .slice()
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -2619,6 +2627,10 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
       setMessage("Deadline việc nhỏ không được vượt quá deadline task chính.");
       return;
     }
+    if (deadlineChanged && !deadlineChangeNote.trim()) {
+      setMessage("Vui lòng nhập lý do thay đổi deadline trước khi lưu.");
+      return;
+    }
     setSaving(true);
     setSaveState("saving");
     setMessage("");
@@ -2654,14 +2666,16 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
             is_done: item.is_done,
             sort_order: index,
             deleted: item.deleted,
-          })),
+        })),
         completion_note: completionNote || null,
+        deadline_change_note: deadlineChanged ? deadlineChangeNote.trim() : null,
       };
       if (membersChanged) {
         detailPayload.member_ids = memberIds;
       }
       await saveTaskDetail(task.id, detailPayload);
       setStatusDraft(nextStatus);
+      setDeadlineChangeNote("");
       setSaveState("saved");
       window.setTimeout(() => setSaveState((current) => (current === "saved" ? "idle" : current)), 2500);
     } catch (currentError) {
@@ -2715,6 +2729,17 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
             </select>
           </label>
         </div>
+        {deadlineChanged && (
+          <label className="completion-note-field deadline-change-note">
+            Lý do thay đổi deadline
+            <textarea
+              value={deadlineChangeNote}
+              onChange={(event) => setDeadlineChangeNote(event.target.value)}
+              placeholder="Nhập lý do đổi deadline để lưu vào bình luận và gửi thông báo..."
+              required
+            />
+          </label>
+        )}
       </div>
       <div className="drawer-section">
         <div className="drawer-section-head">
