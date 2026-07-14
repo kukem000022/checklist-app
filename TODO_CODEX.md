@@ -8,6 +8,12 @@
 
 ## Da lam trong checkpoint nay
 
+- Checkpoint Supabase Storage cho anh ghi chu/binh luan:
+  - Doi anh dinh kem trong ghi chu/binh luan tu base64 inline sang upload Supabase Storage bucket `task-attachments`.
+  - Frontend nen anh thanh WebP toi da ~450KB truoc khi upload, noi dung chi luu markdown link anh.
+  - Rich text renderer doc duoc ca anh cu dang `data:image/...` va anh moi dang URL Storage.
+  - Them SQL `supabase/run_this_create_task_attachments_storage.sql` de tao bucket public 500KB va policy upload cho user da dang nhap.
+  - Them SQL moi vao `scripts/sync-to-main.ps1` de copy sang `D:\Codex_Project`.
 - Checkpoint purple glass UI repair:
   - Dung `high-end-visual-design` de dinh huong lai surface theo kieu glass-dark/purple, khong dung nen trang cho cac khung quan tri.
   - Them lop CSS override cuoi `frontend/src/styles.css` cho theme `purple`.
@@ -479,3 +485,22 @@
 ### Ket qua kiem tra
 - Backend syntax check pass.
 - Frontend production build pass.
+## Checkpoint - mobile image attachment button
+
+### Da lam
+- Them nut chon anh cho binh luan va cac o note trong chi tiet task.
+- Anh duoc nen ve WebP toi da 450KB roi chen vao noi dung dang markdown image.
+- Binh luan co the render lai anh inline.
+- Van giu logic API/Supabase hien tai, khong doi schema.
+
+### File da sua
+- frontend/src/main.jsx
+- frontend/src/styles.css
+- TODO_CODEX.md
+
+### Loi con lai / can kiem tra
+- Can test tren dien thoai that: bam nut Anh, chon anh tu thu vien, gui binh luan/luu task.
+- Neu sau nay can luu nhieu anh lon, nen tach sang Supabase Storage thay vi luu inline trong text.
+
+### Lenh can chay tiep
+- npm.cmd run build

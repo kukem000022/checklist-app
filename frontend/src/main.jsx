@@ -171,6 +171,60 @@ async function compressAvatar(file) {
   throw new Error("Ảnh vẫn lớn hơn 500KB sau khi nén, vui lòng chọn ảnh nhỏ hơn.");
 }
 
+const attachmentBucket = "task-attachments";
+const attachmentImageMaxBytes = 450 * 1024;
+
+function safeAttachmentName(name = "anh-dinh-kem") {
+  return name
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 80) || "anh-dinh-kem";
+}
+
+function appendWithGap(current, addition) {
+  return `${current || ""}${current?.trim() ? "\n\n" : ""}${addition}`;
+}
+
+async function compressAttachmentImage(file) {
+  if (!file?.type?.startsWith("image/")) {
+    throw new Error("Vui lòng chọn file hình ảnh.");
+  }
+
+  const image = await loadImageFromFile(file);
+  const sizes = [1280, 1024, 820, 640, 520];
+  const qualities = [0.82, 0.72, 0.62, 0.52, 0.44];
+
+  for (const maxSize of sizes) {
+    const ratio = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
+    const context = canvas.getContext("2d");
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    for (const quality of qualities) {
+      const blob = await canvasToBlob(canvas, "image/webp", quality);
+      if (blob && blob.size <= attachmentImageMaxBytes) {
+        return blob;
+      }
+    }
+  }
+
+  throw new Error("Ảnh vẫn lớn hơn 450KB sau khi nén, vui lòng chọn ảnh nhỏ hơn.");
+}
+
+function attachmentStoragePath(taskId, fileName) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const random = Math.random().toString(36).slice(2, 8);
+  return `${taskId || "draft"}/${stamp}-${random}-${safeAttachmentName(fileName)}.webp`;
+}
+
+function imageMarkdown(imageUrl, fileName) {
+  return `![${safeAttachmentName(fileName)}](${imageUrl})`;
+}
+
 function formatDate(value) {
   if (!value) return "Chưa đặt";
   return new Intl.DateTimeFormat("vi-VN", {
@@ -2471,6 +2525,38 @@ function SettingsPage({ profile, onSaved }) {
   );
 }
 
+function RichTextWithImages({ text }) {
+  const content = text || "";
+  const imagePattern = /!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)\s]+)\)/g;
+  const nodes = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = imagePattern.exec(content)) !== null) {
+    const before = content.slice(lastIndex, match.index);
+    if (before.trim()) {
+      nodes.push(<p key={`text-${match.index}`}>{before}</p>);
+    }
+    nodes.push(
+      <img
+        key={`image-${match.index}`}
+        className="inline-comment-image"
+        src={match[2]}
+        alt={match[1] || "Ảnh đính kèm"}
+        loading="lazy"
+      />,
+    );
+    lastIndex = imagePattern.lastIndex;
+  }
+
+  const rest = content.slice(lastIndex);
+  if (rest.trim()) {
+    nodes.push(<p key="text-end">{rest}</p>);
+  }
+
+  return <div className="rich-comment-text">{nodes.length ? nodes : <p>{content}</p>}</div>;
+}
+
 function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, saveTaskDetail, addComment }) {
   const [comment, setComment] = useState("");
   const [statusDraft, setStatusDraft] = useState(task?.status || "todo");
@@ -2482,7 +2568,11 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState("idle");
+  const [imageBusyTarget, setImageBusyTarget] = useState("");
   const [checklistPopover, setChecklistPopover] = useState(null);
+  const completionImageInputRef = React.useRef(null);
+  const deadlineImageInputRef = React.useRef(null);
+  const commentImageInputRef = React.useRef(null);
 
   useEffect(() => {
     if (!task) return;
@@ -2511,6 +2601,7 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
     setDeadlineChangeNote("");
     setMessage("");
     setSaveState("idle");
+    setImageBusyTarget("");
     setChecklistPopover(null);
   }, [task]);
 
@@ -2605,11 +2696,67 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
     ));
   }
 
+  async function attachImageToField(file, target) {
+    if (!file) return;
+    setImageBusyTarget(target);
+    setMessage("");
+    try {
+      const blob = await compressAttachmentImage(file);
+      const path = attachmentStoragePath(task.id, file.name);
+      const { error: uploadError } = await supabase.storage
+        .from(attachmentBucket)
+        .upload(path, blob, {
+          contentType: "image/webp",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        const bucketHint = uploadError.message?.toLowerCase().includes("bucket")
+          ? "Bucket ảnh chưa sẵn sàng. Hãy chạy file SQL tạo Supabase Storage trước."
+          : uploadError.message;
+        throw new Error(bucketHint);
+      }
+
+      const { data } = supabase.storage.from(attachmentBucket).getPublicUrl(path);
+      if (!data?.publicUrl) {
+        throw new Error("Upload ảnh xong nhưng không lấy được link ảnh.");
+      }
+
+      const snippet = imageMarkdown(data.publicUrl, file.name);
+      if (target === "comment") {
+        setComment((current) => appendWithGap(current, snippet));
+      } else if (target === "completion") {
+        setCompletionNote((current) => appendWithGap(current, snippet));
+      } else if (target === "deadline") {
+        setDeadlineChangeNote((current) => appendWithGap(current, snippet));
+      }
+    } catch (currentError) {
+      setMessage(currentError.message);
+    } finally {
+      setImageBusyTarget("");
+    }
+  }
+
+  function handleImageInput(event, target) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    attachImageToField(file, target);
+  }
+
+  async function handleImagePaste(event, target) {
+    const file = Array.from(event.clipboardData?.files || []).find((item) => item.type?.startsWith("image/"));
+    if (!file) return;
+    event.preventDefault();
+    await attachImageToField(file, target);
+  }
+
   async function submitComment(event) {
     event.preventDefault();
     setMessage("");
+    const trimmedComment = comment.trim();
+    if (!trimmedComment) return;
     try {
-      await addComment(task.id, comment);
+      await addComment(task.id, trimmedComment);
       setComment("");
       onRefresh();
     } catch (currentError) {
@@ -2730,15 +2877,34 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
           </label>
         </div>
         {deadlineChanged && (
-          <label className="completion-note-field deadline-change-note">
-            Lý do thay đổi deadline
+          <div className="completion-note-field deadline-change-note">
+            <div className="field-action-row">
+              <span>Lý do thay đổi deadline</span>
+              <button
+                className="inline-file-button"
+                type="button"
+                onClick={() => deadlineImageInputRef.current?.click()}
+                disabled={imageBusyTarget === "deadline"}
+              >
+                {imageBusyTarget === "deadline" ? <LoaderCircle size={15} className="spin-icon" /> : <ImageIcon size={15} />}
+                {imageBusyTarget === "deadline" ? "Đang nén..." : "Thêm ảnh"}
+              </button>
+            </div>
             <textarea
               value={deadlineChangeNote}
               onChange={(event) => setDeadlineChangeNote(event.target.value)}
+              onPaste={(event) => handleImagePaste(event, "deadline")}
               placeholder="Nhập lý do đổi deadline để lưu vào bình luận và gửi thông báo..."
               required
             />
-          </label>
+            <input
+              ref={deadlineImageInputRef}
+              className="hidden-file-input"
+              type="file"
+              accept="image/*"
+              onChange={(event) => handleImageInput(event, "deadline")}
+            />
+          </div>
         )}
       </div>
       <div className="drawer-section">
@@ -2849,10 +3015,33 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
             })}
           {!checklistDraft.filter((item) => !item.deleted).length && <p>Task này chưa có checklist.</p>}
         </div>
-        <label className="completion-note-field">
-          Note khi chưa hoàn thành / cần giải trình
-          <textarea value={completionNote} onChange={(event) => setCompletionNote(event.target.value)} placeholder="Nhập lý do hoặc ghi chú nếu việc chưa hoàn thành đúng hạn..." />
-        </label>
+        <div className="completion-note-field">
+          <div className="field-action-row">
+            <span>Note khi chưa hoàn thành / cần giải trình</span>
+            <button
+              className="inline-file-button"
+              type="button"
+              onClick={() => completionImageInputRef.current?.click()}
+              disabled={imageBusyTarget === "completion"}
+            >
+              {imageBusyTarget === "completion" ? <LoaderCircle size={15} className="spin-icon" /> : <ImageIcon size={15} />}
+              {imageBusyTarget === "completion" ? "Đang nén..." : "Thêm ảnh"}
+            </button>
+          </div>
+          <textarea
+            value={completionNote}
+            onChange={(event) => setCompletionNote(event.target.value)}
+            onPaste={(event) => handleImagePaste(event, "completion")}
+            placeholder="Nhập lý do hoặc ghi chú nếu việc chưa hoàn thành đúng hạn..."
+          />
+          <input
+            ref={completionImageInputRef}
+            className="hidden-file-input"
+            type="file"
+            accept="image/*"
+            onChange={(event) => handleImageInput(event, "completion")}
+          />
+        </div>
       </div>
       <div className="drawer-section">
         <h3>Bình luận</h3>
@@ -2863,13 +3052,35 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
                 <strong>{personName(item.profiles)}</strong>
                 <span>{formatDate(item.created_at)}</span>
               </div>
-              <p>{item.comment}</p>
+              <RichTextWithImages text={item.comment} />
             </article>
           ))}
           {!sortedComments.length && <p>Chưa có bình luận.</p>}
         </div>
         <form onSubmit={submitComment} className="comment-form">
-          <input value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Viết cập nhật..." required />
+          <input
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            onPaste={(event) => handleImagePaste(event, "comment")}
+            placeholder="Viết cập nhật..."
+          />
+          <input
+            ref={commentImageInputRef}
+            className="hidden-file-input"
+            type="file"
+            accept="image/*"
+            onChange={(event) => handleImageInput(event, "comment")}
+          />
+          <button
+            className="secondary-action image-attach-action"
+            type="button"
+            onClick={() => commentImageInputRef.current?.click()}
+            disabled={imageBusyTarget === "comment"}
+            title="Thêm ảnh"
+          >
+            {imageBusyTarget === "comment" ? <LoaderCircle size={16} className="spin-icon" /> : <ImageIcon size={16} />}
+            Ảnh
+          </button>
           <button className="secondary-action"><MessageSquare size={16} />Gửi</button>
         </form>
       </div>
