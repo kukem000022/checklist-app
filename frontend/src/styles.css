@@ -6272,3 +6272,117 @@ input[type="datetime-local"] {
     align-items: center;
   }
 }
+/* QA polish: attachment preview, deadline reason focus, and mobile drawer spacing. */
+.inline-comment-image-button {
+  display: block;
+  max-width: 100%;
+  margin: 8px 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  text-align: left;
+}
+
+.inline-comment-image-button .inline-comment-image {
+  margin: 0;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(1, 18, 13, 0.78);
+  backdrop-filter: blur(16px);
+}
+
+.image-lightbox img {
+  max-width: min(96vw, 1100px);
+  max-height: 88vh;
+  object-fit: contain;
+  border-radius: 16px;
+  border: 1px solid rgba(173, 255, 224, 0.24);
+  background: #061a14;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
+}
+
+.image-lightbox-close {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 1201;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(173, 255, 224, 0.2);
+  border-radius: 999px;
+  color: var(--text, #fff);
+  background: rgba(3, 24, 18, 0.82);
+  cursor: pointer;
+}
+
+.deadline-note-attention textarea {
+  border-color: #ff6b6b !important;
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.18), 0 0 0 1px rgba(255, 107, 107, 0.4) inset;
+}
+
+.deadline-note-attention .field-action-row span {
+  color: #ffd0d0;
+}
+
+@media (max-width: 720px) {
+  .board-command-panel .compact-filter-tabs,
+  .task-board-shell .compact-filter-tabs,
+  .task-tabs.compact-filter-tabs,
+  .tabs.task-tabs.compact-filter-tabs {
+    display: none !important;
+  }
+
+  .drawer {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .drawer-savebar,
+  :root[data-theme="dark"] .drawer-savebar,
+  :root[data-theme="purple"] .drawer-savebar,
+  :root[data-theme="light"] .drawer-savebar {
+    position: sticky !important;
+    bottom: calc(58px + env(safe-area-inset-bottom)) !important;
+    z-index: 8;
+    margin: 10px 0 0 !important;
+    padding: 6px 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .drawer-save-actions {
+    grid-template-columns: 48px minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .drawer-close-action {
+    width: 48px !important;
+    min-width: 48px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    font-size: 0 !important;
+  }
+
+  .drawer-savebar .primary-action {
+    min-height: 40px !important;
+  }
+
+  .image-lightbox {
+    padding: 12px;
+  }
+
+  .image-lightbox img {
+    max-width: 96vw;
+    max-height: 82vh;
+  }
+}

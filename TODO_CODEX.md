@@ -526,3 +526,23 @@
 ### Lenh can chay tiep
 - `npm.cmd run build`
 - Supabase SQL: chay `supabase/run_this_create_task_attachments_storage.sql`
+
+## 2026-07-15 - Anh dinh kem, mobile drawer va ly do deadline
+
+### Da lam
+- Anh trong ghi chu/binh luan hien dang thumbnail, bam vao se mo popup xem anh lon.
+- Khi doi deadline ma chua nhap ly do, man hinh tu cuon/focus ve o ly do va highlight de de thay.
+- Don anh roi trong Cai dat gio bo qua task da huy, vi task huy duoc xem nhu khong con dung anh nua.
+- An cum tab trang thai tren mobile de khong chiem chieu cao man hinh.
+- Giam khoang trong/khung sticky cua nut Luu thay doi trong drawer mobile.
+
+### File da sua
+- `frontend/src/main.jsx`
+- `frontend/src/styles.css`
+- `TODO_CODEX.md`
+
+### Loi con lai / can kiem tra
+- Can test truc tiep tren dien thoai: mo chi tiet task, bam anh, luu khi thieu ly do deadline, va xem footer co con khoang trong la hay khong.
+
+### Lenh can chay tiep
+- `npm.cmd run build` da pass.

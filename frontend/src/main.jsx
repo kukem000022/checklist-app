@@ -2263,8 +2263,9 @@ function StorageCleanupPanel({ tasks = [] }) {
     setCleanupError("");
     try {
       const referenced = new Set();
-      collectAttachmentPathsFromValue(tasks, referenced);
-      const taskIds = (tasks || []).map((task) => task?.id).filter(Boolean);
+      const activeTasks = (tasks || []).filter((task) => task?.status !== "cancelled");
+      collectAttachmentPathsFromValue(activeTasks, referenced);
+      const taskIds = activeTasks.map((task) => task?.id).filter(Boolean);
       const commentLists = await Promise.all(
         taskIds.map(async (id) => {
           try {
@@ -2286,7 +2287,7 @@ function StorageCleanupPanel({ tasks = [] }) {
       setOrphans(nextOrphans);
       setCleanupMessage(
         nextOrphans.length
-          ? `Tìm thấy ${nextOrphans.length} ảnh rời. Kiểm tra rồi hãy xóa tay khi rảnh.`
+          ? `Tìm thấy ${nextOrphans.length} ảnh rời, gồm ảnh không còn gắn với task đang hoạt động hoặc thuộc task đã hủy. Kiểm tra rồi hãy xóa tay khi rảnh.`
           : "Không thấy ảnh rời trong Storage."
       );
     } catch (currentError) {
@@ -2320,7 +2321,7 @@ function StorageCleanupPanel({ tasks = [] }) {
       <div className="panel-heading-row">
         <div>
           <h2>Dọn ảnh đính kèm</h2>
-          <p>Quét ảnh trong Storage không còn nằm trong task, ghi chú hoặc bình luận.</p>
+          <p>Quét ảnh trong Storage không còn nằm trong task đang hoạt động, ghi chú hoặc bình luận.</p>
         </div>
         <button type="button" className="icon-button" onClick={scanOrphans} disabled={scanning}>
           {scanning ? <LoaderCircle className="spin" size={18} /> : <RefreshCw size={18} />}
@@ -2701,7 +2702,7 @@ function SettingsPage({ profile, tasks = [], onSaved }) {
   );
 }
 
-function RichTextWithImages({ text }) {
+function RichTextWithImages({ text, onImageClick }) {
   const content = text || "";
   const imagePattern = /!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)\s]+)\)/g;
   const nodes = [];
@@ -2713,14 +2714,23 @@ function RichTextWithImages({ text }) {
     if (before.trim()) {
       nodes.push(<p key={`text-${match.index}`}>{before}</p>);
     }
+    const imageSrc = match[2];
+    const imageAlt = match[1] || "Ảnh đính kèm";
     nodes.push(
-      <img
+      <button
         key={`image-${match.index}`}
-        className="inline-comment-image"
-        src={match[2]}
-        alt={match[1] || "Ảnh đính kèm"}
-        loading="lazy"
-      />,
+        className="inline-comment-image-button"
+        type="button"
+        onClick={() => onImageClick?.(imageSrc, imageAlt)}
+        aria-label="Mở ảnh đính kèm"
+      >
+        <img
+          className="inline-comment-image"
+          src={imageSrc}
+          alt={imageAlt}
+          loading="lazy"
+        />
+      </button>,
     );
     lastIndex = imagePattern.lastIndex;
   }
@@ -2744,11 +2754,14 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState("idle");
+  const [deadlineNoteMissing, setDeadlineNoteMissing] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
   const [imageBusyTarget, setImageBusyTarget] = useState("");
   const [checklistPopover, setChecklistPopover] = useState(null);
   const completionImageInputRef = React.useRef(null);
   const deadlineImageInputRef = React.useRef(null);
   const commentImageInputRef = React.useRef(null);
+  const deadlineNoteRef = React.useRef(null);
 
   useEffect(() => {
     if (!task) return;
@@ -2777,6 +2790,8 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
     setDeadlineChangeNote("");
     setMessage("");
     setSaveState("idle");
+    setDeadlineNoteMissing(false);
+    setPreviewImage(null);
     setImageBusyTarget("");
     setChecklistPopover(null);
   }, [task]);
@@ -2960,8 +2975,14 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
     }
     if (deadlineChanged && !deadlineChangeNote.trim()) {
       setMessage("Vui lòng nhập lý do thay đổi deadline trước khi lưu.");
+      setDeadlineNoteMissing(true);
+      window.setTimeout(() => {
+        deadlineNoteRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        deadlineNoteRef.current?.focus({ preventScroll: true });
+      }, 0);
       return;
     }
+    setDeadlineNoteMissing(false);
     setSaving(true);
     setSaveState("saving");
     setMessage("");
@@ -3061,7 +3082,7 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
           </label>
         </div>
         {deadlineChanged && (
-          <div className="completion-note-field deadline-change-note">
+          <div className={`completion-note-field deadline-change-note ${deadlineNoteMissing ? "deadline-note-attention" : ""}`}>
             <div className="field-action-row">
               <span>Lý do thay đổi deadline</span>
               <button
@@ -3075,8 +3096,12 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
               </button>
             </div>
             <textarea
+              ref={deadlineNoteRef}
               value={deadlineChangeNote}
-              onChange={(event) => setDeadlineChangeNote(event.target.value)}
+              onChange={(event) => {
+                setDeadlineChangeNote(event.target.value);
+                if (deadlineNoteMissing) setDeadlineNoteMissing(false);
+              }}
               onPaste={(event) => handleImagePaste(event, "deadline")}
               placeholder="Nhập lý do đổi deadline để lưu vào bình luận và gửi thông báo..."
               required
@@ -3236,7 +3261,10 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
                 <strong>{personName(item.profiles)}</strong>
                 <span>{formatDate(item.created_at)}</span>
               </div>
-              <RichTextWithImages text={item.comment} />
+              <RichTextWithImages
+                text={item.comment}
+                onImageClick={(src, alt) => setPreviewImage({ src, alt })}
+              />
             </article>
           ))}
           {!sortedComments.length && <p>Chưa có bình luận.</p>}
@@ -3268,6 +3296,26 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
           <button className="secondary-action"><MessageSquare size={16} />Gửi</button>
         </form>
       </div>
+      {previewImage && (
+        <div className="image-lightbox" role="dialog" aria-modal="true" onClick={() => setPreviewImage(null)}>
+          <button
+            type="button"
+            className="image-lightbox-close"
+            onClick={(event) => {
+              event.stopPropagation();
+              setPreviewImage(null);
+            }}
+            aria-label="Đóng ảnh"
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={previewImage.src}
+            alt={previewImage.alt}
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
       <div className="drawer-savebar">
         {saveState === "saved" && <span className="save-state-note success">Đã lưu thành công.</span>}
         {saveState === "error" && message && <span className="save-state-note error">{message}</span>}
