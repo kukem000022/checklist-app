@@ -504,3 +504,25 @@
 
 ### Lenh can chay tiep
 - npm.cmd run build
+
+## 2026-07-15 - Upload UI va don anh roi
+
+### Da lam
+- Lam lai UI nut them anh trong ghi chu va binh luan, an input file mac dinh cua trinh duyet.
+- Chan anh goc lon hon 10MB truoc khi nen va upload.
+- Chi cho chon cac dinh dang anh JPG, PNG, WebP, GIF.
+- Them khu "Don anh dinh kem" trong Cai dat de quet anh tren Storage khong con duoc tham chieu trong task/comment/checklist va xoa thu cong.
+
+### File da sua
+- `frontend/src/main.jsx`
+- `frontend/src/styles.css`
+- `supabase/run_this_create_task_attachments_storage.sql`
+- `TODO_CODEX.md`
+
+### Loi con lai / can kiem tra
+- Can chay SQL `supabase/run_this_create_task_attachments_storage.sql` tren Supabase production de nang bucket len 10MB va cap quyen admin xoa anh roi.
+- Can test upload anh tu desktop va mobile, sau do vao Cai dat de quet anh roi.
+
+### Lenh can chay tiep
+- `npm.cmd run build`
+- Supabase SQL: chay `supabase/run_this_create_task_attachments_storage.sql`

@@ -14,6 +14,7 @@ $files = @(
   "backend\src\reminders.js",
   "supabase\schema.sql",
   "supabase\run_this_fix_tasklist_encoding.sql",
+  "supabase\run_this_create_task_attachments_storage.sql",
   "supabase\run_this_update_recurring_monthly.sql",
   "supabase\run_this_update_project_avatar_inactive_review_cleanup.sql",
   "render.yaml",

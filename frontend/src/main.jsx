@@ -173,6 +173,8 @@ async function compressAvatar(file) {
 
 const attachmentBucket = "task-attachments";
 const attachmentImageMaxBytes = 450 * 1024;
+const attachmentUploadMaxBytes = 10 * 1024 * 1024;
+const attachmentPublicMarker = `/storage/v1/object/public/${attachmentBucket}/`;
 
 function safeAttachmentName(name = "anh-dinh-kem") {
   return name
@@ -223,6 +225,69 @@ function attachmentStoragePath(taskId, fileName) {
 
 function imageMarkdown(imageUrl, fileName) {
   return `![${safeAttachmentName(fileName)}](${imageUrl})`;
+}
+
+function attachmentPathFromUrl(url) {
+  if (!url || typeof url !== "string") return "";
+  const markerIndex = url.indexOf(attachmentPublicMarker);
+  if (markerIndex < 0) return "";
+  const rawPath = url
+    .slice(markerIndex + attachmentPublicMarker.length)
+    .split(/[?#]/)[0];
+  try {
+    return decodeURIComponent(rawPath);
+  } catch {
+    return rawPath;
+  }
+}
+
+function collectAttachmentPathsFromText(text, paths) {
+  if (!text || typeof text !== "string") return;
+  const markdownImageRegex = /!\[[^\]]*]\(([^)]+)\)/g;
+  const urlRegex = /https?:\/\/[^\s)]+/g;
+  for (const match of text.matchAll(markdownImageRegex)) {
+    const path = attachmentPathFromUrl(match[1]);
+    if (path) paths.add(path);
+  }
+  for (const match of text.matchAll(urlRegex)) {
+    const path = attachmentPathFromUrl(match[0]);
+    if (path) paths.add(path);
+  }
+}
+
+function collectAttachmentPathsFromValue(value, paths) {
+  if (!value) return;
+  if (typeof value === "string") {
+    collectAttachmentPathsFromText(value, paths);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectAttachmentPathsFromValue(item, paths));
+    return;
+  }
+  if (typeof value === "object") {
+    Object.values(value).forEach((item) => collectAttachmentPathsFromValue(item, paths));
+  }
+}
+
+async function listStorageAttachmentPaths(prefix = "") {
+  const { data, error } = await supabase.storage.from(attachmentBucket).list(prefix, {
+    limit: 1000,
+    sortBy: { column: "created_at", order: "desc" },
+  });
+  if (error) throw error;
+  const paths = [];
+  for (const item of data || []) {
+    if (!item?.name) continue;
+    const path = prefix ? `${prefix}/${item.name}` : item.name;
+    const isFolder = !item.id && !item.metadata;
+    if (isFolder) {
+      paths.push(...(await listStorageAttachmentPaths(path)));
+    } else {
+      paths.push(path);
+    }
+  }
+  return paths;
 }
 
 function formatDate(value) {
@@ -2184,7 +2249,116 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
   );
 }
 
-function SettingsPage({ profile, onSaved }) {
+function StorageCleanupPanel({ tasks = [] }) {
+  const [scanning, setScanning] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [orphans, setOrphans] = useState([]);
+  const [cleanupMessage, setCleanupMessage] = useState("");
+  const [cleanupError, setCleanupError] = useState("");
+
+  async function scanOrphans() {
+    if (scanning) return;
+    setScanning(true);
+    setCleanupMessage("");
+    setCleanupError("");
+    try {
+      const referenced = new Set();
+      collectAttachmentPathsFromValue(tasks, referenced);
+      const taskIds = (tasks || []).map((task) => task?.id).filter(Boolean);
+      const commentLists = await Promise.all(
+        taskIds.map(async (id) => {
+          try {
+            const result = await api(`/api/tasks/${id}/comments`);
+            return Array.isArray(result) ? result : result?.comments || [];
+          } catch {
+            return [];
+          }
+        })
+      );
+      collectAttachmentPathsFromValue(commentLists, referenced);
+      const allPaths = await listStorageAttachmentPaths("");
+      const nextOrphans = allPaths
+        .filter((path) => !referenced.has(path))
+        .map((path) => ({
+          path,
+          url: supabase.storage.from(attachmentBucket).getPublicUrl(path).data.publicUrl,
+        }));
+      setOrphans(nextOrphans);
+      setCleanupMessage(
+        nextOrphans.length
+          ? `Tìm thấy ${nextOrphans.length} ảnh rời. Kiểm tra rồi hãy xóa tay khi rảnh.`
+          : "Không thấy ảnh rời trong Storage."
+      );
+    } catch (currentError) {
+      setCleanupError(currentError.message || "Không quét được ảnh rời.");
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  async function deleteOrphans() {
+    if (deleting || !orphans.length) return;
+    setDeleting(true);
+    setCleanupMessage("");
+    setCleanupError("");
+    try {
+      const { error } = await supabase.storage
+        .from(attachmentBucket)
+        .remove(orphans.map((item) => item.path));
+      if (error) throw error;
+      setCleanupMessage(`Đã xóa ${orphans.length} ảnh rời khỏi Storage.`);
+      setOrphans([]);
+    } catch (currentError) {
+      setCleanupError(currentError.message || "Không xóa được ảnh rời.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <section className="panel storage-cleanup-card">
+      <div className="panel-heading-row">
+        <div>
+          <h2>Dọn ảnh đính kèm</h2>
+          <p>Quét ảnh trong Storage không còn nằm trong task, ghi chú hoặc bình luận.</p>
+        </div>
+        <button type="button" className="icon-button" onClick={scanOrphans} disabled={scanning}>
+          {scanning ? <LoaderCircle className="spin" size={18} /> : <RefreshCw size={18} />}
+        </button>
+      </div>
+      {(cleanupMessage || cleanupError) && (
+        <p className={cleanupError ? "error" : "success"}>{cleanupError || cleanupMessage}</p>
+      )}
+      <div className="storage-cleanup-actions">
+        <button type="button" className="secondary-button" onClick={scanOrphans} disabled={scanning}>
+          {scanning ? <LoaderCircle className="spin" size={16} /> : <Search size={16} />}
+          Quét ảnh rời
+        </button>
+        <button type="button" className="danger-soft-button" onClick={deleteOrphans} disabled={deleting || !orphans.length}>
+          {deleting ? <LoaderCircle className="spin" size={16} /> : <Trash2 size={16} />}
+          Xóa ảnh đã lọc
+        </button>
+      </div>
+      {orphans.length ? (
+        <div className="storage-orphan-list">
+          {orphans.slice(0, 12).map((item) => (
+            <a key={item.path} href={item.url} target="_blank" rel="noreferrer" className="storage-orphan-item">
+              <ImageIcon size={15} />
+              <span>{item.path}</span>
+            </a>
+          ))}
+          {orphans.length > 12 && (
+            <span className="muted-text">Còn {orphans.length - 12} ảnh nữa. Bấm xóa nếu đã kiểm tra xong.</span>
+          )}
+        </div>
+      ) : (
+        <p className="muted-text">Bấm quét để tìm ảnh rời trước khi xóa.</p>
+      )}
+    </section>
+  );
+}
+
+function SettingsPage({ profile, tasks = [], onSaved }) {
   const [form, setForm] = useState({
     full_name: profile?.full_name || "",
     department: profile?.department || "",
@@ -2504,6 +2678,8 @@ function SettingsPage({ profile, onSaved }) {
         </form>
       </section>
 
+      <StorageCleanupPanel tasks={tasks} />
+
       <section className="panel">
         <div className="section-head">
           <div>
@@ -2698,6 +2874,14 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
 
   async function attachImageToField(file, target) {
     if (!file) return;
+    if (file.size > attachmentUploadMaxBytes) {
+      setMessage("Ảnh gốc tối đa 10MB. Vui lòng chọn ảnh nhỏ hơn.");
+      return;
+    }
+    if (!file.type?.startsWith("image/")) {
+      setMessage("Chỉ hỗ trợ JPG, PNG, WebP hoặc GIF.");
+      return;
+    }
     setImageBusyTarget(target);
     setMessage("");
     try {
@@ -2901,7 +3085,7 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
               ref={deadlineImageInputRef}
               className="hidden-file-input"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/gif"
               onChange={(event) => handleImageInput(event, "deadline")}
             />
           </div>
@@ -3038,7 +3222,7 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
             ref={completionImageInputRef}
             className="hidden-file-input"
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             onChange={(event) => handleImageInput(event, "completion")}
           />
         </div>
@@ -3068,7 +3252,7 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
             ref={commentImageInputRef}
             className="hidden-file-input"
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             onChange={(event) => handleImageInput(event, "comment")}
           />
           <button
@@ -3526,7 +3710,7 @@ function AppShell() {
     if (activePage === "notifications") {
       return <NotificationsPage dailyTemplates={dailyTemplates} projects={projects} profiles={profiles} createDailyTemplate={createDailyTemplate} updateDailyTemplate={updateDailyTemplate} runReminderSweepNow={runReminderSweepNow} />;
     }
-    return <SettingsPage profile={profile} onSaved={load} />;
+    return <SettingsPage profile={profile} tasks={tasks} onSaved={load} />;
   }
 
   return (

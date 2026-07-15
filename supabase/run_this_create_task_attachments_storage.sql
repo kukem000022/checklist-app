@@ -3,7 +3,7 @@ values (
   'task-attachments',
   'task-attachments',
   true,
-  524288,
+  10485760,
   array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 )
 on conflict (id) do update
@@ -47,4 +47,13 @@ for delete
 using (
   bucket_id = 'task-attachments'
   and owner = auth.uid()
+);
+
+drop policy if exists "task_attachments_delete_admin" on storage.objects;
+create policy "task_attachments_delete_admin"
+on storage.objects
+for delete
+using (
+  bucket_id = 'task-attachments'
+  and public.is_admin()
 );
