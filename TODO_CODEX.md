@@ -546,3 +546,63 @@
 
 ### Lenh can chay tiep
 - `npm.cmd run build` da pass.
+
+## 2026-07-16 - Nhieu nhan su cho task dinh ky
+
+### Da lam
+- Cho phep chon va chinh sua nhieu nhan su trong mot mau task dinh ky.
+- Giu nguoi dau tien lam nguoi phu trach chinh de tuong thich voi du lieu va thong bao cu.
+- Luu toan bo nguoi duoc chon vao bang `daily_task_template_members`.
+- Khi sinh task tu mau dinh ky, tu dong gan day du nhan su vao `task_members`.
+- Tu dong backfill mau cu: dua `assignee_id` hien tai vao danh sach thanh vien cua mau.
+- Doi luong cap nhat thanh vien sang upsert truoc, chi xoa nhung nguoi bi bo chon sau de tranh mat danh sach neu co loi giua chung.
+- Mo rong RLS de thanh vien cua mau co the xem mau va lich su task dinh ky lien quan.
+
+### File da sua
+- `backend/src/server.js`
+- `backend/src/reminders.js`
+- `frontend/src/main.jsx`
+- `frontend/src/styles.css`
+- `supabase/schema.sql`
+- `supabase/run_this_update_recurring_multiple_assignees.sql`
+- `TODO_CODEX.md`
+
+### Loi con lai / can kiem tra
+- Can chay `supabase/run_this_update_recurring_multiple_assignees.sql` tren Supabase production truoc khi dung tinh nang moi.
+- Can test that: tao mot mau co tu 2 nhan su, bam Chay lai hom nay, sau do kiem tra task sinh ra co du thanh vien xu ly.
+- Khong con loi tinh trong bo kiem tra tu dong. Kiem thu tren Supabase production can thuc hien sau khi chay migration.
+
+### Lenh can chay tiep
+- Da pass: `npm.cmd run lint`.
+- Da pass: `npm.cmd run build` (Vite, 1614 modules).
+- Da pass: `node --check backend\src\server.js`.
+- Da pass: `node --check backend\src\reminders.js`.
+- Tiep theo: chay `supabase/run_this_update_recurring_multiple_assignees.sql` trong Supabase SQL Editor.
+
+## 2026-07-16 - Chuan hoa mau giao dien toi
+
+### Da lam
+- Gom bang mau dark ve mot he token chung: nen OLED xanh-den, 4 cap be mat, vien mong, text chinh/phu/muted va mau accent emerald.
+- Dong bo mau cho sidebar, bottom navigation, topbar, dashboard, bang task, cot du an, the task, drawer, modal, form, bang du lieu, bao cao, nhan su, vai tro va cai dat.
+- Loai bo cam giac cac khoi den/trang bi tach roi; tang do tuong phan noi dung ma van giu giao dien diu mat.
+- Chuan hoa mau nghia cho sap het han, qua han, dang lam, hoan thanh, da huy va task moi.
+- Giu blur chi o lop modal/drawer co dinh; khong them blur vao bang task cuon de tranh giam hieu nang.
+- Giu nguyen cac rule responsive hien co, bao gom an cum tab trang thai tren mobile va footer drawer khong co khoi nen thua.
+
+### File da sua
+- `frontend/src/styles.css`
+- `TODO_CODEX.md`
+
+### QA/QC
+- CSS can bang dau ngoac: 951 mo / 951 dong.
+- `npm.cmd run lint` da pass.
+- `npm.cmd run build` da pass (Vite, 1614 modules; CSS 122.42 kB, JS 471.98 kB).
+- Da kiem tra thu tu cascade: lop dark chuan nam cuoi file va khong ghi de rule mobile can thiet.
+- Phien nay khong co Playwright/trinh duyet tu dong de chup anh responsive; can xem lai nhanh tren dien thoai that sau khi dong bo sang may chay.
+
+### Loi con lai / can kiem tra
+- Khong con loi build/lint/CSS tinh.
+- Can kiem tra cam quan tren du lieu production that, nhat la cac man hinh co noi dung dai va anh dinh kem.
+
+### Lenh can chay tiep
+- Khong co lenh bat buoc. Khi can dong bo/release, chay lai `npm.cmd run lint` va `npm.cmd run build` tai ban se deploy.

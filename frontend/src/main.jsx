@@ -1939,6 +1939,7 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
   const emptyTemplateDraft = {
     project_id: "",
     assignee_id: "",
+    assignee_ids: [],
     title: "",
     description: "",
     due_time: "17:00",
@@ -1968,6 +1969,7 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
       ...current,
       project_id: projectId,
       assignee_id: "",
+      assignee_ids: [],
     }));
   }
 
@@ -1978,10 +1980,13 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
   }
 
   function selectTemplate(template) {
+    const templateAssigneeIds = template.daily_task_template_members?.map((member) => member.user_id) || [];
+    const assigneeIds = [...new Set([template.assignee_id, ...templateAssigneeIds].filter(Boolean))];
     setSelectedTemplateId(template.id);
     setTemplateDraft({
       project_id: template.project_id || "",
       assignee_id: template.assignee_id || "",
+      assignee_ids: assigneeIds,
       title: template.title || "",
       description: template.description || "",
       due_time: String(template.due_time || "17:00").slice(0, 5),
@@ -1992,6 +1997,27 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
       requires_note: Boolean(template.requires_note),
     });
     setMessage("Đang chỉnh mẫu định kỳ đã chọn.");
+  }
+
+  function toggleTemplateAssignee(profileId) {
+    setTemplateDraft((current) => {
+      const selectedIds = new Set(current.assignee_ids || []);
+      if (selectedIds.has(profileId)) selectedIds.delete(profileId);
+      else selectedIds.add(profileId);
+      const assigneeIds = [...selectedIds];
+      return {
+        ...current,
+        assignee_ids: assigneeIds,
+        assignee_id: assigneeIds[0] || "",
+      };
+    });
+  }
+
+  function templateAssigneeNames(template) {
+    const members = template.daily_task_template_members?.map((member) => member.profile).filter(Boolean) || [];
+    const people = [template.assignee, ...members].filter(Boolean);
+    const uniquePeople = [...new Map(people.map((person) => [person.id, person])).values()];
+    return uniquePeople.map(personName).join(", ") || "Chưa chọn nhân sự";
   }
 
   function recurrenceLabel(template) {
@@ -2023,10 +2049,14 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
     setMessage("");
     setRunReport(null);
     try {
+      if (!templateDraft.assignee_ids?.length) {
+        throw new Error("Vui lòng chọn ít nhất một nhân sự phụ trách.");
+      }
       if (selectedTemplateId) {
         await updateDailyTemplate(selectedTemplateId, {
           project_id: templateDraft.project_id || null,
           assignee_id: templateDraft.assignee_id,
+          assignee_ids: templateDraft.assignee_ids,
           title: templateDraft.title,
           description: templateDraft.description || null,
           due_time: templateDraft.due_time,
@@ -2041,6 +2071,7 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
         await createDailyTemplate({
           project_id: templateDraft.project_id || null,
           assignee_id: templateDraft.assignee_id,
+          assignee_ids: templateDraft.assignee_ids,
           title: templateDraft.title,
           description: templateDraft.description || null,
           due_time: templateDraft.due_time,
@@ -2172,12 +2203,21 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
               {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </select>
           </label>
-          <label>
-            Người phụ trách
-            <select value={templateDraft.assignee_id} onChange={(event) => setTemplateDraft({ ...templateDraft, assignee_id: event.target.value })} required>
-              <option value="">Chọn nhân sự</option>
-              {assignableProfiles.map((profile) => <option key={profile.id} value={profile.id}>{personName(profile)}</option>)}
-            </select>
+          <label className="recurring-assignees-field">
+            <span>Người phụ trách <small>{templateDraft.assignee_ids.length ? `Đã chọn ${templateDraft.assignee_ids.length} người` : "Chọn ít nhất 1 người"}</small></span>
+            <span className="recurring-assignees-picker">
+              {assignableProfiles.map((profile) => (
+                <label key={profile.id} className={templateDraft.assignee_ids.includes(profile.id) ? "selected" : ""}>
+                  <input
+                    type="checkbox"
+                    checked={templateDraft.assignee_ids.includes(profile.id)}
+                    onChange={() => toggleTemplateAssignee(profile.id)}
+                  />
+                  <AvatarChip profile={profile} className="recurring-assignee-avatar" />
+                  <span>{personName(profile)}</span>
+                </label>
+              ))}
+            </span>
             {selectedProject && !assignableProfiles.length && <small>Dự án này chưa có thành viên.</small>}
           </label>
           <label>
@@ -2233,7 +2273,7 @@ function NotificationsPage({ dailyTemplates, projects, profiles, createDailyTemp
                 <small>Hạn {String(template.due_time).slice(0, 5)} · {(template.checklist_items || []).length} việc nhỏ</small>
               </button>
               <button type="button" className="template-select-button daily-template-cell" onClick={() => selectTemplate(template)}>
-                <span>{personName(template.assignee)}</span>
+                <span>{templateAssigneeNames(template)}</span>
                 <small>{template.requires_note ? "Bắt buộc note" : "Không bắt buộc note"}</small>
               </button>
               <b className={template.active ? "status-pill" : "status-pill muted"}>{template.active ? "Đang bật" : "Tạm tắt"}</b>

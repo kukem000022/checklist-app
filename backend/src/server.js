@@ -1035,7 +1035,7 @@ app.get("/api/daily-templates", async (req, res, next) => {
   try {
     const { data, error } = await req.db
       .from("daily_task_templates")
-      .select("*, projects(id, name), assignee:profiles!daily_task_templates_assignee_id_fkey(id, full_name, email, avatar_url, avatar_path)")
+      .select("*, projects(id, name), assignee:profiles!daily_task_templates_assignee_id_fkey(id, full_name, email, avatar_url, avatar_path), daily_task_template_members(user_id, profile:profiles(id, full_name, email, avatar_url, avatar_path))")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -1051,6 +1051,7 @@ app.post("/api/daily-templates", async (req, res, next) => {
       .object({
         project_id: z.string().uuid().nullable().optional(),
         assignee_id: z.string().uuid(),
+        assignee_ids: z.array(z.string().uuid()).min(1).optional(),
         title: z.string().min(2),
         description: z.string().nullable().optional(),
         due_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).default("17:00"),
@@ -1063,14 +1064,20 @@ app.post("/api/daily-templates", async (req, res, next) => {
       })
       .parse(req.body);
 
+    const assigneeIds = [...new Set(body.assignee_ids?.length ? body.assignee_ids : [body.assignee_id])];
+    const primaryAssigneeId = assigneeIds[0];
+
     if (body.project_id) {
-      await assertTaskMemberIds(body.project_id, [body.assignee_id]);
+      await assertTaskMemberIds(body.project_id, assigneeIds);
     }
+
+    const { assignee_ids: _assigneeIds, ...templateBody } = body;
 
     const { data, error } = await req.db
       .from("daily_task_templates")
       .insert({
-        ...body,
+        ...templateBody,
+        assignee_id: primaryAssigneeId,
         monthly_day: body.recurrence_type === "monthly" ? body.monthly_day || 1 : null,
         weekdays: body.recurrence_type === "daily" ? normalizeTemplateWeekdays(body.weekdays) : null,
       })
@@ -1078,6 +1085,15 @@ app.post("/api/daily-templates", async (req, res, next) => {
       .single();
 
     if (error) throw error;
+
+    const { error: membersError } = await req.db.from("daily_task_template_members").insert(
+      assigneeIds.map((userId) => ({ template_id: data.id, user_id: userId })),
+    );
+    if (membersError) {
+      await req.db.from("daily_task_templates").delete().eq("id", data.id);
+      throw membersError;
+    }
+
     res.status(201).json(data);
   } catch (error) {
     next(error);
@@ -1090,6 +1106,7 @@ app.patch("/api/daily-templates/:templateId", async (req, res, next) => {
       .object({
         project_id: z.string().uuid().nullable().optional(),
         assignee_id: z.string().uuid().optional(),
+        assignee_ids: z.array(z.string().uuid()).min(1).optional(),
         title: z.string().min(2).optional(),
         description: z.string().nullable().optional(),
         due_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
@@ -1104,7 +1121,7 @@ app.patch("/api/daily-templates/:templateId", async (req, res, next) => {
 
     const { data: currentTemplate, error: templateFetchError } = await req.db
       .from("daily_task_templates")
-      .select("project_id, assignee_id, recurrence_type, weekdays")
+      .select("project_id, assignee_id, recurrence_type, weekdays, daily_task_template_members(user_id)")
       .eq("id", req.params.templateId)
       .single();
 
@@ -1113,13 +1130,24 @@ app.patch("/api/daily-templates/:templateId", async (req, res, next) => {
     const nextProjectId = Object.prototype.hasOwnProperty.call(body, "project_id")
       ? body.project_id
       : currentTemplate.project_id;
-    const nextAssigneeId = body.assignee_id || currentTemplate.assignee_id;
+    const currentAssigneeIds = currentTemplate.daily_task_template_members?.map((item) => item.user_id) || [];
+    const nextAssigneeIds = [...new Set(
+      body.assignee_ids?.length
+        ? body.assignee_ids
+        : body.assignee_id
+          ? [body.assignee_id, ...currentAssigneeIds.filter((id) => id !== body.assignee_id)]
+          : currentAssigneeIds.length
+            ? currentAssigneeIds
+            : [currentTemplate.assignee_id],
+    )];
+    const nextAssigneeId = nextAssigneeIds[0];
 
     if (nextProjectId) {
-      await assertTaskMemberIds(nextProjectId, [nextAssigneeId]);
+      await assertTaskMemberIds(nextProjectId, nextAssigneeIds);
     }
 
-    const patch = { ...body };
+    const { assignee_ids: _assigneeIds, ...patch } = body;
+    patch.assignee_id = nextAssigneeId;
     const nextRecurrenceType = patch.recurrence_type || currentTemplate.recurrence_type || "daily";
     if (Object.prototype.hasOwnProperty.call(patch, "recurrence_type") || Object.prototype.hasOwnProperty.call(patch, "monthly_day")) {
       patch.monthly_day = nextRecurrenceType === "monthly" ? patch.monthly_day || 1 : null;
@@ -1136,6 +1164,25 @@ app.patch("/api/daily-templates/:templateId", async (req, res, next) => {
       .single();
 
     if (error) throw error;
+
+    if (body.assignee_ids || body.assignee_id) {
+      const { error: upsertMembersError } = await req.db.from("daily_task_template_members").upsert(
+        nextAssigneeIds.map((userId) => ({ template_id: req.params.templateId, user_id: userId })),
+        { onConflict: "template_id,user_id" },
+      );
+      if (upsertMembersError) throw upsertMembersError;
+
+      const removedAssigneeIds = currentAssigneeIds.filter((userId) => !nextAssigneeIds.includes(userId));
+      if (removedAssigneeIds.length) {
+        const { error: deleteMembersError } = await req.db
+          .from("daily_task_template_members")
+          .delete()
+          .eq("template_id", req.params.templateId)
+          .in("user_id", removedAssigneeIds);
+        if (deleteMembersError) throw deleteMembersError;
+      }
+    }
+
     res.json(data);
   } catch (error) {
     next(error);

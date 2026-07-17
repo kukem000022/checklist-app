@@ -351,7 +351,7 @@ async function ensureDailyTasks() {
   const runDate = todayInVietnam();
   const { data: templates, error } = await admin
     .from("daily_task_templates")
-    .select("*")
+    .select("*, daily_task_template_members(user_id)")
     .eq("active", true);
 
   if (error) throw error;
@@ -367,6 +367,10 @@ async function ensureDailyTasks() {
 
   async function createTaskFromTemplate(template, mode, targetDate) {
     const dueTime = String(template.due_time || "17:00:00").slice(0, 8);
+    const memberIds = [...new Set([
+      template.assignee_id,
+      ...(template.daily_task_template_members || []).map((member) => member.user_id),
+    ].filter(Boolean))];
     const recurrenceLabel = (template.recurrence_type || "daily") === "monthly" ? "hằng tháng" : "hằng ngày";
     const { data: task, error: taskError } = await admin
       .from("tasks")
@@ -384,6 +388,14 @@ async function ensureDailyTasks() {
       .single();
 
     if (taskError) throw taskError;
+
+    if (memberIds.length) {
+      const { error: membersError } = await admin.from("task_members").upsert(
+        memberIds.map((userId) => ({ task_id: task.id, user_id: userId })),
+        { onConflict: "task_id,user_id" },
+      );
+      if (membersError) throw membersError;
+    }
 
     if (template.checklist_items?.length) {
       const { error: checklistError } = await admin.from("task_checklists").insert(
