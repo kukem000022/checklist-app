@@ -1,5 +1,6 @@
 ﻿ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   BarChart3,
@@ -469,6 +470,7 @@ function themeLabel(theme) {
     dark: "Dark xanh",
     purple: "Purple dark",
     light: "Light mode",
+    "charcoal-lime": "Charcoal Lime",
   }[theme] || "Dark xanh";
 }
 
@@ -494,7 +496,23 @@ function persistSidebarCollapsed(collapsed) {
   }
 }
 
-function Sidebar({ activePage, setActivePage, profile, theme, toggleTheme, collapsed, toggleCollapsed }) {
+function LimeThemeButton({ theme, onClick, className = "" }) {
+  const active = theme === "charcoal-lime";
+  return (
+    <button
+      className={`icon-button lime-theme-button ${active ? "active" : ""} ${className}`.trim()}
+      type="button"
+      onClick={onClick}
+      title={active ? "Quay lại Dark xanh" : "Bật theme Charcoal Lime"}
+      aria-label={active ? "Quay lại Dark xanh" : "Bật theme Charcoal Lime"}
+      aria-pressed={active}
+    >
+      <span className="lime-theme-swatch" aria-hidden="true" />
+    </button>
+  );
+}
+
+function Sidebar({ activePage, setActivePage, profile, theme, toggleTheme, toggleLimeTheme, collapsed, toggleCollapsed }) {
   const allowedItems = navItems.filter((item) => !item.adminOnly || profile?.role === "admin");
   return (
     <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
@@ -543,12 +561,13 @@ function Sidebar({ activePage, setActivePage, profile, theme, toggleTheme, colla
         >
           {React.createElement(themeIcon(theme), { size: 17 })}
         </button>
+        <LimeThemeButton theme={theme} onClick={toggleLimeTheme} className="sidebar-lime-theme" />
       </div>
     </aside>
   );
 }
 
-function Topbar({ activePage, profile, loading, onRefresh, openModal, theme, toggleTheme }) {
+function Topbar({ activePage, profile, loading, onRefresh, openModal, theme, toggleTheme, toggleLimeTheme }) {
   const title = navItems.find((item) => item.id === activePage)?.label || "Checklist";
   const showTaskButton = ["overview", "tasks"].includes(activePage);
   return (
@@ -558,6 +577,7 @@ function Topbar({ activePage, profile, loading, onRefresh, openModal, theme, tog
         <p>{personName(profile)} · {roleLabel(profile?.role)}</p>
       </div>
       <div className="topbar-actions">
+        <LimeThemeButton theme={theme} onClick={toggleLimeTheme} />
         <button className="icon-button theme-icon-button" onClick={toggleTheme} title={`Đổi theme. Hiện tại: ${themeLabel(theme)}`}>
           {React.createElement(themeIcon(theme), { size: 18 })}
         </button>
@@ -2804,6 +2824,23 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
   const deadlineNoteRef = React.useRef(null);
 
   useEffect(() => {
+    if (!previewImage) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setPreviewImage(null);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [previewImage]);
+
+  useEffect(() => {
     if (!task) return;
     setStatusDraft(task.status);
     setTimeDraft({
@@ -3336,7 +3373,7 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
           <button className="secondary-action"><MessageSquare size={16} />Gửi</button>
         </form>
       </div>
-      {previewImage && (
+      {previewImage && createPortal(
         <div className="image-lightbox" role="dialog" aria-modal="true" onClick={() => setPreviewImage(null)}>
           <button
             type="button"
@@ -3354,7 +3391,8 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
             alt={previewImage.alt}
             onClick={(event) => event.stopPropagation()}
           />
-        </div>
+        </div>,
+        document.body,
       )}
       <div className="drawer-savebar">
         {saveState === "saved" && <span className="save-state-note success">Đã lưu thành công.</span>}
@@ -3594,7 +3632,7 @@ function CreateProjectModal({ profiles, profile, onCreate, onClose }) {
 function getInitialTheme() {
   try {
     const storedTheme = localStorage.getItem("checklist-theme");
-    return ["dark", "purple", "light"].includes(storedTheme) ? storedTheme : "dark";
+    return ["dark", "purple", "light", "charcoal-lime"].includes(storedTheme) ? storedTheme : "dark";
   } catch {
     return "dark";
   }
@@ -3637,6 +3675,10 @@ function AppShell() {
       if (current === "purple") return "light";
       return "dark";
     });
+  }
+
+  function toggleLimeTheme() {
+    setTheme((current) => current === "charcoal-lime" ? "dark" : "charcoal-lime");
   }
 
   function toggleSidebarCollapsed() {
@@ -3809,11 +3851,12 @@ function AppShell() {
         profile={profile}
         theme={theme}
         toggleTheme={toggleTheme}
+        toggleLimeTheme={toggleLimeTheme}
         collapsed={sidebarCollapsed}
         toggleCollapsed={toggleSidebarCollapsed}
       />
       <section className="app-main">
-        {activePage !== "tasks" && <Topbar activePage={activePage} profile={profile} loading={loading} onRefresh={load} openModal={setModal} theme={theme} toggleTheme={toggleTheme} />}
+        {activePage !== "tasks" && <Topbar activePage={activePage} profile={profile} loading={loading} onRefresh={load} openModal={setModal} theme={theme} toggleTheme={toggleTheme} toggleLimeTheme={toggleLimeTheme} />}
         {error && <div className="error-banner">{error}</div>}
         {renderPage()}
       </section>
