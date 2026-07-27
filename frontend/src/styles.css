@@ -6227,13 +6227,27 @@ button,
   font-weight: 600;
 }
 
+input[type="date"],
+input[type="time"],
 input[type="datetime-local"] {
   color: var(--text);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] input[type="date"],
+:root[data-theme="dark"] input[type="time"],
+:root[data-theme="dark"] input[type="datetime-local"],
+:root[data-theme="purple"] input[type="date"],
+:root[data-theme="purple"] input[type="time"],
+:root[data-theme="purple"] input[type="datetime-local"] {
   color-scheme: dark;
 }
 
-:root[data-theme="light"] input[type="datetime-local"] {
-  color-scheme: light;
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.82;
 }
 
 @media (max-width: 720px) {

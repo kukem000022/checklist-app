@@ -606,3 +606,26 @@
 
 ### Lenh can chay tiep
 - Khong co lenh bat buoc. Khi can dong bo/release, chay lai `npm.cmd run lint` va `npm.cmd run build` tai ban se deploy.
+
+## 2026-07-27 - Khoi phuc bo chon ngay gio
+
+### Da lam
+- Sua `color-scheme` cua cac input `date`, `time` va `datetime-local` theo tung theme de icon lich/dong ho khong bi an tren nen sang.
+- Lam ro trang thai bam cua icon mo bo chon native tren Chrome/Edge.
+- Them `push-release.bat` de build production truoc khi push nhanh `main` len `origin`.
+
+### File da sua
+- `frontend/src/styles.css`
+- `push-release.bat`
+- `TODO_CODEX.md`
+
+### QA/QC
+- `npm.cmd run lint` da pass.
+- `npm.cmd run build` da pass (Vite, 1615 modules).
+- `git diff --check` da pass.
+
+### Loi con lai / can kiem tra
+- Can kiem tra nhanh popup chon ngay gio tren trinh duyet nguoi dung sau khi release.
+
+### Lenh can chay tiep
+- Chay `push-release.bat` de build lai va push commit release.
