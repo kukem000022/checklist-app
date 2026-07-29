@@ -2,6 +2,22 @@
 import { createRoot } from "react-dom/client";
 import { createPortal } from "react-dom";
 import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   AlertTriangle,
   BarChart3,
   Bell,
@@ -10,6 +26,7 @@ import {
   Clock3,
   CircleUserRound,
   FolderKanban,
+  GripVertical,
   KeyRound,
   Image as ImageIcon,
   LayoutDashboard,
@@ -2803,6 +2820,37 @@ function RichTextWithImages({ text, onImageClick }) {
   return <div className="rich-comment-text">{nodes.length ? nodes : <p>{content}</p>}</div>;
 }
 
+function SortableChecklistItem({ itemKey, className, children }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: itemKey });
+
+  return (
+    <article
+      ref={setNodeRef}
+      className={`${className} ${isDragging ? "dragging" : ""}`}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+    >
+      <button
+        className="icon-button checklist-drag-handle"
+        type="button"
+        title="Kéo để đổi vị trí"
+        aria-label="Kéo để đổi vị trí công việc"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical size={17} />
+      </button>
+      {children}
+    </article>
+  );
+}
+
 function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, saveTaskDetail, addComment }) {
   const [comment, setComment] = useState("");
   const [statusDraft, setStatusDraft] = useState(task?.status || "todo");
@@ -2822,6 +2870,10 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
   const deadlineImageInputRef = React.useRef(null);
   const commentImageInputRef = React.useRef(null);
   const deadlineNoteRef = React.useRef(null);
+  const checklistSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   useEffect(() => {
     if (!previewImage) return undefined;
@@ -2948,6 +3000,21 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
       }),
     );
     setChecklistPopover((current) => (current?.key === key ? null : current));
+  }
+
+  function reorderChecklistItems({ active, over }) {
+    if (!over || active.id === over.id) return;
+
+    setChecklistDraft((current) => {
+      const oldIndex = current.findIndex((item) => checklistItemKey(item) === active.id);
+      const newIndex = current.findIndex((item) => checklistItemKey(item) === over.id);
+      if (oldIndex < 0 || newIndex < 0) return current;
+
+      return arrayMove(current, oldIndex, newIndex).map((item, index) => ({
+        ...item,
+        sort_order: index,
+      }));
+    });
   }
 
   function toggleChecklistPopover(key, type) {
@@ -3225,7 +3292,17 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
             Thêm công việc
           </button>
         </div>
-        <div className="checklist checklist-editor">
+        <DndContext
+          sensors={checklistSensors}
+          collisionDetection={closestCenter}
+          onDragStart={() => setChecklistPopover(null)}
+          onDragEnd={reorderChecklistItems}
+        >
+          <SortableContext
+            items={checklistDraft.filter((item) => !item.deleted).map(checklistItemKey)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="checklist checklist-editor">
           {checklistDraft
             .filter((item) => !item.deleted)
             .map((item) => {
@@ -3233,7 +3310,11 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
               const itemOverdue = item.due_time && new Date(fromLocalInputValue(item.due_time)) < new Date() && !item.is_done;
               const assignedProfile = checklistAssigneeProfiles.find((profile) => profile.id === item.assignee_id);
               return (
-                <article key={key} className={"checklist-item-editor " + (item.is_done ? "done " : "") + (itemOverdue ? "overdue" : "")}>
+                <SortableChecklistItem
+                  key={key}
+                  itemKey={key}
+                  className={"checklist-item-editor " + (item.is_done ? "done " : "") + (itemOverdue ? "overdue" : "")}
+                >
                   <div className="check-row checklist-title-row">
                     <input
                       type="checkbox"
@@ -3296,11 +3377,13 @@ function TaskDrawer({ task, comments, profiles, projects, onClose, onRefresh, sa
                       )}
                     </div>
                   )}
-                </article>
+                </SortableChecklistItem>
               );
             })}
           {!checklistDraft.filter((item) => !item.deleted).length && <p>Task này chưa có checklist.</p>}
-        </div>
+            </div>
+          </SortableContext>
+        </DndContext>
         <div className="completion-note-field">
           <div className="field-action-row">
             <span>Note khi chưa hoàn thành / cần giải trình</span>

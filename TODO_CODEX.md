@@ -629,3 +629,31 @@
 
 ### Lenh can chay tiep
 - Chay `push-release.bat` de build lai va push commit release.
+
+## 2026-07-29 - Keo tha sap xep checklist
+
+### Da lam
+- Them tay nam keo cho tung task con trong Checklist.
+- Ho tro sap xep bang chuot, cam ung va ban phim; chi bat dau keo tu tay nam de khong anh huong thao tac sua ten task.
+- Cap nhat lai `sort_order` trong ban nhap sau khi tha; thu tu duoc luu bang nut `Luu thay doi` hien co.
+- Dung `dnd-kit` cho luong keo tha, khong can migration hay thay doi backend.
+
+### File da sua
+- `frontend/package.json`
+- `frontend/src/main.jsx`
+- `frontend/src/styles.css`
+- `package-lock.json`
+- `release-checklist-reorder.bat`
+- `TODO_CODEX.md`
+
+### QA/QC
+- `npm.cmd run lint` da pass.
+- `npm.cmd run build` da pass (Vite, 1619 modules).
+- `git diff --check` da pass.
+
+### Loi con lai / can kiem tra
+- Can kiem tra cam giac keo va tu dong cuon tren dien thoai that voi checklist dai.
+- Build co canh bao chunk JavaScript vuot 500 kB; day la canh bao kich thuoc, khong lam build that bai.
+
+### Lenh can chay tiep
+- Chay `release-checklist-reorder.bat` de build, tao commit dung pham vi va push release.
