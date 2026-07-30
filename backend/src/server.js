@@ -1719,9 +1719,11 @@ app.use((error, _req, res, _next) => {
   });
 });
 
-cron.schedule(config.reminderCron, () => {
-  runReminderSweep().catch((error) => console.error("Reminder sweep failed", error));
-});
+if (!process.env.VERCEL) {
+  cron.schedule(config.reminderCron, () => {
+    runReminderSweep().catch((error) => console.error("Reminder sweep failed", error));
+  });
+}
 
 app.listen(config.port, () => {
   console.log(`Checklist MVP backend running on http://localhost:${config.port}`);

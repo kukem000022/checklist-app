@@ -657,3 +657,33 @@
 
 ### Lenh can chay tiep
 - Chay `release-checklist-reorder.bat` de build, tao commit dung pham vi va push release.
+
+## 2026-07-30 - Vercel lam API du phong cho Render
+
+### Da lam
+- Giu Render lam API chinh va them bien `VITE_API_BACKUP_URL` cho Vercel.
+- Tu dong chuyen cac request doc sang API du phong khi mat ket noi; request ghi chi chuyen khi Render tra `502`, `503` hoac `504` de han che tao du lieu trung.
+- Sau khi fallback, uu tien Vercel trong 5 phut roi thu lai Render.
+- Tat `node-cron` khi backend chay trong moi truong Vercel; Render van chay lich nhac hien tai.
+- Them `release-vercel-backup.bat` de commit/push dung pham vi, khong tron cac thay doi Zalo/Render dang de do.
+
+### File da sua
+- `.github/workflows/deploy-frontend.yml`
+- `backend/src/server.js`
+- `frontend/.env.example`
+- `frontend/src/api.js`
+- `release-vercel-backup.bat`
+- `TODO_CODEX.md`
+
+### QA/QC
+- `npm.cmd run lint` da pass.
+- `npm.cmd run build` da pass (Vite, 1619 modules).
+- `node --check backend/src/server.js` da pass.
+- `git diff --check` da pass.
+
+### Loi con lai / can kiem tra
+- Can deploy backend Vercel, lay production URL va tao GitHub Actions secret `VITE_API_BACKUP_URL`.
+- Can chay lai workflow GitHub Pages sau khi them secret, sau do test fallback bang loi `503` co kiem soat.
+
+### Lenh can chay tiep
+- Chay `release-vercel-backup.bat`, sau do moi bam Deploy tren Vercel.
